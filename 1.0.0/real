@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Check if the number of parameters is correct
+if [ $# -ne 4 ]
+then
+    echo "Usage: real <wrfmodel:filename> <metemDsRef:filename> <wrfInputDsRef:filename> <wrfBoundary:filename>"
+    exit -1
+fi
+
+
+wrf_model=$1
+metemDsRef=$2
+wrfInputDsRef=$3
+wrfBoundary=$4
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/real"
+cd $THISDIR
+mkdir outputs
+
+xml2namelist -f $wrf_model
+
+cp $metemDsRef .
+#Extract metgrid
+#metemDsRef2netcdf -i $metemDsRef -o $THISDIR
+dsref2files -i $metemDsRef -o $THISDIR -n "http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wps/metgrid_output"
+
+
+if [ "$WRF_ROOT" == "" ]
+then
+  echo "WRF_ROOT not defined!"
+  exit 1
+fi
+
+#queue="batch"
+threads=8
+nodes=1
+ppn=1
+
+#Link the real exe
+ln -s $WRF_ROOT/WRFV3/run/real.exe
+
+#
+cat > real.pbs << EOF
+#!/bin/bash
+
+#PBS -l nodes=$nodes:ppn=$ppn
+#PBS -l walltime=2:00:00
+#PBS -j oe
+#PBS -N real-$jobId
+#PBS -k oe
+
+cd $THISDIR
+
+export MPI_HOME=$MPI_HOME
+export PATH=\$MPI_HOME/bin:\$PATH
+export LD_LIBRARY_PATH=\$MPI_HOME/lib:\$LD_LIBRARY_PATH
+
+export NETCDF=$NETCDF
+export PATH=\$NETCDF/bin:\$PATH
+export LD_LIBRARY_PATH=\$NETCDF/lib:\$LD_LIBRARY_PATH
+
+echo "nodefile: \$PBS_NODEFILE"
+echo "-----------------------"
+cat \$PBS_NODEFILE
+echo "-----------------------"
+
+$THISDIR/real.exe 2>&1 
+EOF
+
+#bsub real.pbs
+export OMP_NUM_THREADS=$threads
+./real.exe 2>&1 1>real.faceit.log
+cd $THISDIR
+mv wrfinput_* outputs/
+
+cp wrfbdy_d01 $wrfBoundary
+cat > $wrfInputDsRef << __EOF__
+*** TEMPORARY ***
+__EOF__
+
+
+

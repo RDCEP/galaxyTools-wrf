@@ -1,0 +1,82 @@
+#!/bin/bash
+
+wrfTimeLatLonOutput=$1
+places=$2
+plotZipFile=$3
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/wrf-plot"
+cd $THISDIR
+mkdir inputs
+mkdir outputs
+
+pointfeaturecollection2csv -i $places -o places.csv
+
+title=`ncdump -h $wrfTimeLatLonOutput | grep "TITLE" | grep -o '".*"' | sed 's/"//g'`
+startDate=`ncdump -h $wrfTimeLatLonOutput | grep "START_DATE" | grep -o '".*"' | sed 's/"//g'`
+maxTimes=`ncdump -h $wrfTimeLatLonOutput | grep "XTIME = UNLIMITED"|awk '{ print $6 }'|cut -c2-`
+
+we=`ncdump -h $wrfTimeLatLonOutput | grep "WEST-EAST_GRID_DIMENSION" | awk '{ print $3 }'`
+sn=`ncdump -h $wrfTimeLatLonOutput | grep "SOUTH-NORTH_GRID_DIMENSION" | awk '{ print $3 }'`
+bt=`ncdump -h $wrfTimeLatLonOutput | grep "BOTTOM-TOP_GRID_DIMENSION" | awk '{ print $3 }'`
+
+dx=`ncdump -h $wrfTimeLatLonOutput | grep "DX" | awk '{ print $3 }'`
+dy=`ncdump -h $wrfTimeLatLonOutput | grep "DY" | awk '{ print $3 }'`
+
+
+echo "Processing: $title"
+echo "$startDate ($maxTimes time steps)"
+grads -lbc "run $PACKAGE_BASE/wrf-plot.gs $wrfTimeLatLonOutput places.csv $maxTimes" 2>&1
+
+echo "Creating html"
+cd outputs
+cat > index.html << EOF
+<html>
+  <head>
+    <title>$title</title>
+  </head>
+  <body>
+    <h1>$title</h1>
+    <table>
+      <tr><td>Start date:</td><td colspan="3">$startDate ($maxTimes time steps)</td></tr>
+      <tr><td></td><td>West East</td><td>South North</td><td>Bottom Top</td></tr>
+      <tr><td>Dimensions:</td><td>$we</td><td>$sn</td><td>$bt</td></tr>
+      <tr><td>Resolution:</td><td colspan="3"> $dx x $dx meters</td></tr>
+    </table>
+    <hr/>
+    <a href="timeseries-000-tsp.png"><img src="timeseries-000-tsp.png" width="640" height="480"/></a>
+    <a href="timeseries-000-crf.png"><img src="timeseries-000-crf.png" width="640" height="480"/></a>
+    <hr/>
+EOF
+declare -i count
+
+count=0
+files=`ls output-???.png`
+for file in $files
+do
+  echo "Time step: $count"
+  echo "<a href=\"$file\">[FCST HR $count]</a>" >> index.html
+  count=$count+1
+done
+
+cat >> index.html << EOF
+    <hr/>
+EOF
+
+count=0
+files=`ls output-???.png`
+for file in $files
+do
+  echo "Time step: $count"
+  echo "<a href=\"$file\"><img src=\"$file\" width=\"320\" heigth=\"240\" alt=\"[FCST HR $count]\"/></a>" >> index.html
+  count=$count+1
+done
+cat >> index.html << EOF
+  </body>
+</html>
+EOF
+
+echo "Zipping..."
+zip -r $THISDIR/tmp.zip *
+cp $THISDIR/tmp.zip $plotZipFile
+echo "Done!"

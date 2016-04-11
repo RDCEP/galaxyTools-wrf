@@ -1,0 +1,19 @@
+#!/bin/bash 
+
+wrf_model=$1
+wrfOutputDsRef=$2
+domain=$3
+wrfOutput=$4
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/wrf-ncrcat"
+cd $THISDIR
+mkdir inputs
+mkdir outputs
+
+dsref2files -i $wrfOutputDsRef -o $THISDIR/inputs -n "http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wrf/wrf_output"
+
+echo "Concatenating..."
+ncrcat --hst --ovr ./inputs/wrfout_${domain}_* temp.nc
+cp temp.nc  $wrfOutput
+rm temp.nc

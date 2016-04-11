@@ -1,0 +1,143 @@
+#! /bin/bash
+
+# Check if PACKAGE_BASE
+if [ -z "$PACKAGE_BASE" ];
+then
+    echo "Undefined PACKAGE_BASE"
+    exit -1
+fi
+
+# Check if the number of parameters is correct
+if [ $# -ne 5 ]
+then
+    echo "Usage: getgfsfromncep <idate:yyyymmdd> <init:00|06|12|18> <maxHours:hh> <gfsdsref:filename>"
+    echo "Try: getgfsfromncep 20151021 00 24 3 /tmp/getgfsfromncep.xml"
+    exit -1
+fi
+
+date="$1"
+init="$2"
+maxHours=$3
+step=$4
+gfsOutputDsRef=$5
+
+# Script name
+MYNAME=$0
+
+doLog()
+{
+  local strDate=`date -u +"%d/%m/%Y %H:%M:%S"`
+  echo "[$MYNAME] $strDate : $1"
+}
+
+doLog "---- sNCEPder started ----"
+
+# Numero di file da scaricare
+declare -i nFilesToCheck
+
+# Numero di file scaricati
+declare -i nFiles
+
+# Download 3h steps
+hours=""
+for ((a=0; a <= $maxHours ; a=a+$step)) #72
+do
+   hour=$a
+   if [ $a -lt 10 ];
+   then
+     hour="0$hour"
+   fi
+   hours="$hours $hour"
+done
+
+doLog "Hours: $hours"
+
+WORK_DIR=`pwd`
+
+# Path locale
+LOCAL_PATH="$WORK_DIR/tmp"
+mkdir $LOCAL_PATH
+
+productBaseUrl="ftp://ftpprd.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/"
+#gfsDir=gfs.${DSADATE}${init}
+gfsDir=gfs.${date}${init}
+ftpProductUrl=$productBaseUrl/$gfsDir/
+
+# Controlla se i dati sono disponibili
+doLog "Checking t${init} products..."
+file="prdst_${init}_UTC_GFS.html"
+
+curl -s -o $file $ftpProductUrl 2>&1
+if [ -e $file ]
+then
+  cd $LOCAL_PATH
+  doLog "Downloading $NCEPDATE in $LOCAL_PATH..."
+  nFilesToCheck=0
+  for hour in $hours
+  do
+    if [ $hour -lt 100 ]
+    then
+      hour30="0$hour"
+    else
+      hour30=$hour
+    fi
+
+    fileToDownload="gfs.t${init}z.pgrb2.0p50.f$hour30"
+    fileUrl="$ftpProductUrl/$fileToDownload"
+    localFile="gfs.t${init}z.pgrbf$hour30.grib2"
+
+    doLog "fileUrl:$fileUrl localFile:$localFile"
+    wget -q  $fileUrl
+    if [ -e $fileToDownload ]
+    then
+      mv -f $fileToDownload $localFile
+    fi
+    nFilesToCheck=$nFilesToCheck+1
+  done
+  
+  nFiles=0
+
+  # Per ognuna delle ore richieste...
+  for hour in $hours
+  do
+    # Controlla se il file e' stato scaricato
+    if [ $hour -lt 100 ]
+    then
+      hour30="0$hour"
+    else
+      hour30=$hour
+    fi
+    localFile="gfs.t${init}z.pgrbf$hour30.grib2"
+
+    FILETOCHECK="$LOCAL_PATH/$localFile"
+    if [ -e $FILETOCHECK ]
+    then
+      # Il file e' stato scaricato
+      doLog "$FILETOCHECK [OK]"
+
+      # Incrementa il contatore dei file scaricati
+      nFiles=$nFiles+1
+    else
+      # Il file non e' stato scaricato
+      doLog "$FILETOCHECK [FAIL]"
+    fi
+  done
+
+  # Controlla se sono stati scaricati tutti i file
+  if [ $nFiles == $nFilesToCheck ]
+  then
+    # Tutti i file sono stati scricati correttamente
+    doLog "All files downloaded correctly!"
+
+    mv $LOCAL_PATH "$WORK_DIR/outputs"
+  else
+    # Non tutti i file sono sono stati scaricati
+    doLog "Downloaded ($nFiles) and to be download ($nFilesToCheck) files count doesn't match!"
+  fi
+else
+  doLog "- Troubles with the web page"
+fi
+
+cat > $gfsOutputDsRef << __EOF__
+*** TEMPORARY ***
+__EOF__

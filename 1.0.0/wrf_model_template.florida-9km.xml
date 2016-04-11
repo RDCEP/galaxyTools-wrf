@@ -1,0 +1,487 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<wrf_config>
+  <wps name="WPS" desc="WRF Preprocessing System" >
+    <share name="Share section" desc="This section describes variables that are used by more than one WPS program. For example, the wrf_core variable specifies whether the WPS is to produce data for the ARW or the NMM core- information which is needed by both the geogrid and metgrid programs">
+      <wrf_core name="WRF core" desc="A character string set to either 'ARW' or 'NMM' that tells the WPS which dynamical core the input data are being prepared for">ARW</wrf_core>
+      <start_dates name="Start Date" desc="A list character strings of the form 'YYYY-MM-DD_HH:mm:ss' specifying the starting UTC date of the simulation for each nest">
+        <start_date domain="d01">%IYEAR%-%IMONTH%-%IDAY%_%IHOUR%:00:00</start_date>
+        <start_date domain="d02">%IYEAR%-%IMONTH%-%IDAY%_%IHOUR%:00:00</start_date>
+        <start_date domain="d03">%IYEAR%-%IMONTH%-%IDAY%_%IHOUR%:00:00</start_date>
+      </start_dates>
+      <end_dates name="End Date" desc="A list of character strings of the form 'YYYY-MM-DD_HH:mm:ss' specifying the ending UTC date of the simulation for each nest">
+        <end_date domain="d01">%FYEAR%-%FMONTH%-%FDAY%_%FHOUR%:00:00</end_date>
+        <end_date domain="d02">%FYEAR%-%FMONTH%-%FDAY%_%FHOUR%:00:00</end_date>
+        <end_date domain="d03">%FYEAR%-%FMONTH%-%FDAY%_%FHOUR%:00:00</end_date>
+      </end_dates>
+      <interval_seconds name="Interval seconds" desc="The integer number of seconds between time-varying meteorological input files.">%INTERVAL_SECONDS%</interval_seconds>
+      <max_dom name="max domain" desc="An integer specifying the total number of domains/nests, including the parent domain, in the simulation">%MAX_DOM%</max_dom>
+      <io_form_geogrid name="I/O form geogrid" desc="The WRF I/O API format that the domain files created by the geogrid program will be written in. Possible options are: 1 for binary; 2 for NetCDF; 3 for GRIB1. When option 1 is given, domain files will have a suffix of .int; when option 2 is given, domain files will have a suffix of .nc; when option 3 is given, domain files will have a suffix of .gr1. Default value is 2 (NetCDF)">2</io_form_geogrid>
+    </share>
+
+    <geogrid name="Geogrid section" desc="This section specifies variables that are specific to the geogrid program. Variables in the geogrid section primarily define the size and location of all model domains, and where the static geographical data are found.">
+      <parent_ids name="Parent ID" desc="A list of MAX_DOM integers specifying, for each nest, the domain number of the nest's parent; for the coarsest domain, this variable should be set to 1">
+	<parent_id domain="d01">1</parent_id>
+      </parent_ids>
+      <parent_grid_ratios name="Parent grid ratio" desc="A list of integers specifying, for each nest, the nesting ratio relative to the domain's parent">
+        <parent_grid_ratio domain="d01">1</parent_grid_ratio>
+      </parent_grid_ratios>
+      <i_parent_starts  name="I-parent start" desc="A list of integers specifying, for each nest, the x-coordinate of the lower-left corner of the nest in the parent unstaggered grid. For the coarsest domain, a value of 1 should be specified">
+	<i_parent_start domain="d01">1</i_parent_start>
+      </i_parent_starts>       
+      <j_parent_starts name="J-parent start" desc="A list of MAX_DOM integers specifying, for each nest, the x-coordinate of the lower-left corner of the nest in the parent unstaggered grid. For the coarsest domain, a value of 1 should be specified">
+	<j_parent_start domain="d01">1</j_parent_start>
+      </j_parent_starts>        
+      <e_wes name="E-WE" desc="A list of MAX_DOM integers specifying, for each nest, the nest's full west-east dimension. For nested domains, e_we must be one greater than an integer multiple of the nest's parent_grid_ratio (i.e., e_we = n*parent_grid_ratio+1 for some positive integer n)">   	
+	<e_we domain="d01">100</e_we>
+      </e_wes>
+      <e_sns name="E-SN" desc="A list of MAX_DOM integers specifying, for each nest, the nest's full south-north dimension. For nested domains, e_sn must be one greater than an integer multiple of the nest's parent_grid_ratio (i.e., e_sn = n*parent_grid_ratio+1 for some positive integer n)">
+        <e_sn domain="d01">130</e_sn>
+      </e_sns>
+     <g_data_res name="GEOG_DATA_RES" desc="A list of MAX_DOM character strings specifying, for each nest, a corresponding resolution or list of resolutions separated by + symbols of source data to be used when interpolating static terrestrial data to the nest's grid">
+        <geog_data_res  domain="d01">30s</geog_data_res>
+     </g_data_res>
+	<dx name="DX" desc="A real value specifying the grid distance in the x-direction where the map scale factor is 1">9000</dx>
+	<dy name="DY" desc="A real value specifying the grid distance in the y-direction where the map scale factor is 1">9000</dy>
+	<map_proj name="Map projection" desc="A character string specifying the projection of the simulation domain. For ARW, accepted projections are 'lambert', 'polar', 'mercator', and 'lat-lon'; for NMM, a projection of 'rotated_ll' must be specified">lambert</map_proj>
+	<ref_lat name="Ref-latitude" desc="A real value specifying the latitude part of a (latitude, longitude) location whose (i,j) location in the simulation domain is known">28.673</ref_lat>
+	<ref_lon name="Ref-longitude" desc="A real value specifying the longitude part of a (latitude, longitude) location whose (i, j) location in the simulation domain is known">-83.632</ref_lon>
+	<truelat1 name="True Latitude" desc="A real value specifying, for ARW, the first true latitude for the Lambert conformal projection, or the only true latitude for the Mercator and polar stereographic projections.">28.673</truelat1>
+	<truelat2 name="True Longitude" desc="A real value specifying, for ARW, the second true latitude for the Lambert conformal conic projection. For all other projections, truelat2 is ignored.">28.673</truelat2>
+	<stand_lon name="Stand-Longitude" desc="A real value specifying, for ARW, the longitude that is parallel with the y-axis in the Lambert conformal and polar stereographic projections. For the regular latitude-longitude projection, this value gives the rotation about the earth's geographic poles">-83.632</stand_lon>
+	<geog_data_path name="Geogrid data path" desc="A character string giving the path, either relative or absolute, to the directory where the geographical data directories may be found. This path is the one to which rel_path specifications in the GEOGRID.TBL file are given in relation to.">./geog</geog_data_path>
+	<OPT_GEOGRID_TBL_PATH name="Opt-Geogrid-TBL-path" desc="A character string giving the path, either relative or absolute, to the GEOGRID.TBL file. The path should not contain the actual file name, as GEOGRID.TBL is assumed, but should only give the path where this file is located.">./geogrid</OPT_GEOGRID_TBL_PATH>	
+    </geogrid>
+
+    <ungrib name="Ungrib section" desc="Currently, this section contains only two variables, which determine the output format written by ungrib and the name of the output files">
+	<out_format name="Output Format" desc="A character string set either to 'WPS', 'SI', or 'MM5'. If set to 'MM5', ungrib will write output in the format of the MM5 pregrid program; if set to 'SI', ungrib will write output in the format of grib_prep.exe; if set to 'WPS', ungrib will write data in the WPS intermediate format">WPS</out_format>
+	<prefix name="Prefix" desc="A character string that will be used as the prefix for intermediate-format files created by ungrib; here, prefix refers to the string PREFIX in the filename PREFIX:YYYY-MM-DD_HH of an intermediate file. The prefix may contain path information, either relative or absolute, in which case the intermediate files will be written in the directory specified. This option may be useful to avoid renaming intermediate files if ungrib is to be run on multiple sources of GRIB data.">FILE</prefix>
+    </ungrib>
+
+    <metgrid name="Metgrid section" desc="This section defines variables used only by the metgrid program. Typically, the user will be interested in the fg_name variable, and may need to modify other variables of this section less frequently">
+	<fg_name name="FG_name" desc="A list of character strings specifying the path and prefix of ungribbed data files. The path may be relative or absolute, and the prefix should contain all characters of the filenames up to, but not including, the colon preceding the date. When more than one fg_name is specified, and the same field is found in two or more input sources, the data in the last encountered source will take priority over all preceding sources for that field">FILE</fg_name>
+	<io_form_metgrid name="I/O form metgrid" desc="The WRF I/O API format that the output created by the metgrid program will be written in. Possible options are: 1 for binary; 2 for NetCDF; 3 for GRIB1. When option 1 is given, output files will have a suffix of .int; when option 2 is given, output files will have a suffix of .nc; when option 3 is given, output files will have a suffix of .gr1">2</io_form_metgrid>
+    </metgrid>
+
+    <mod_levs name="Mod_levs" desc="The mod_levs.exe program is used to remove levels of data from intermediate format files. The levels which are to be kept are specified in a new namelist record in the namelist.wps file">
+        <press_pas>
+        <press_pa>201300</press_pa>
+        <press_pa>200100</press_pa>
+        <press_pa>100000</press_pa>
+        <press_pa>95000</press_pa>
+        <press_pa>90000</press_pa>
+        <press_pa>85000</press_pa>
+        <press_pa>80000</press_pa>
+        <press_pa>75000</press_pa>
+        <press_pa>70000</press_pa>
+        <press_pa>65000</press_pa>
+        <press_pa>60000</press_pa>
+        <press_pa>55000</press_pa>
+        <press_pa>50000</press_pa>
+        <press_pa>45000</press_pa>
+        <press_pa>40000</press_pa>
+        <press_pa>35000</press_pa>
+        <press_pa>30000</press_pa>
+        <press_pa>25000</press_pa>
+        <press_pa>20000</press_pa>
+        <press_pa>15000</press_pa>
+        <press_pa>10000</press_pa>
+        <press_pa>5000</press_pa>
+        <press_pa>1000</press_pa>
+	</press_pas>
+    </mod_levs>  
+</wps>
+
+  <wrf name="WRF" desc="Weather Research and Forecasting Model">
+    <time_control name="Time control section" desc="Option for time control">
+        <run_days name="Run days" desc="Run time in days">0</run_days>
+        <run_hours name="Run hours" desc="Run time in hours">0</run_hours>
+        <run_minutes name="Run minutes" desc="Run time in minutes">0</run_minutes>
+        <run_seconds name="Run seconds" desc="Run time in seconds">0</run_seconds>
+      <start_years name="Start Year" desc="A list of MAX_DOM 4-digit integers specifying the starting UTC year of the simulation for each nest">
+        <start_year  domain="d01">%IYEAR%</start_year>
+      </start_years>
+      <start_months name="Start month" desc="A list of integers specifying the starting UTC month of the simulation for each nest">
+        <start_month  domain="d01">%IMONTH%</start_month>
+      </start_months>
+      <start_days name="Start day" desc="A list of integers specifying the starting UTC day of the simulation for each nest.">
+	<start_day  domain="d01">%IDAY%</start_day>
+      </start_days>
+      <start_hours name="Start hour" desc="A list of integers specifying the starting UTC hour of the simulation for each nest">
+	<start_hour domain="d01">%IHOUR%</start_hour>
+      </start_hours>
+      <start_minutes name="Start minute" desc="A list of integers specifying the starting UTC minute of the simulation for each nest">
+	<start_minute domain="d01">00</start_minute>
+      </start_minutes>
+      <start_seconds name="Start seconds" desc="A list of integers specifying the starting UTC second of the simulation for each nest">	
+	<start_second domain="d01">00</start_second>
+      </start_seconds>
+      <end_years name="End Year" desc="A list of integers specifying the ending UTC year of the simulation for each nest."> 
+	<end_year domain="d01">%FYEAR%</end_year>
+     </end_years>
+     <end_months name="End month" desc="A list of integers specifying the ending UTC month of the simulation for each nest.">
+	<end_month domain="d01">%FMONTH%</end_month>
+     </end_months>
+     <end_days name="End day" desc="A list of integers specifying the ending UTC day of the simulation for each nest.">
+	<end_day domain="d01">%FDAY%</end_day>
+     </end_days>
+     <end_hours name="End Hour" desc="A list of integers specifying the ending UTC hour of the simulation for each nest.">
+	<end_hour domain="d01">%FHOUR%</end_hour>
+     </end_hours>
+     <end_minutes name="End minute" desc="A list of integers specifying the ending UTC minute of the simulation for each nest.">
+	<end_minute domain="d01">00</end_minute>
+     </end_minutes>
+     <end_seconds name="End second" desc="A list of integers specifying the ending UTC second of the simulation for each nest.">
+	<end_second domain="d01">00</end_second>
+     </end_seconds>
+	<interval_seconds name="Interval seconds\" desc="The integer number of seconds between time-varying meteorological input files">%INTERVAL_SECONDS%</interval_seconds>
+     <input_from_files name="Input from file" desc="Whether the nested run will have input files for domains other than domain 1">
+	<input_from_file domain="d01">true</input_from_file>
+     </input_from_files>
+     <history_intervals name="History interval" desc="History output file interval in minutes">
+	<history_interval domain="d01">60</history_interval>
+     </history_intervals>
+     <frames_per_outfiles name="Frames per outfile" desc="number of output times bulked into each history file; used to split output files into smaller pieces">
+	<frames_per_outfile domain="d01">1</frames_per_outfile>
+     </frames_per_outfiles>
+	<restart name="Restart" desc="Whether this run is a restart">false</restart>
+	<restart_interval name="Restart interval" desc="Restart output file interval in minutes">360</restart_interval>
+	<io_form_history name="I/O form history" desc="The format in which the history output file will be">2</io_form_history>
+	<io_form_restart name="I/O form restart" desc="The format in which the restart output files will be">2</io_form_restart>
+	<io_form_input name="I/O form input" desc="The format of the input files. 2 is netCDF">2</io_form_input>
+	<io_form_boundary name="I/O form boundary" desc="The format for the wrfbdy file. 2is netCDF format">2</io_form_boundary>
+	<debug_level name="Debug level" desc="Giving this a larger value increases the debugging print-outs when running WRF">0</debug_level>   
+    </time_control>
+
+   <domains name="Domain, nesting and parameters section">
+	<time_step name="Time step" desc="Time step for integration seconds (recommended 6*dx in km for a typical case)">60</time_step>
+	<time_step_fract_num name="Time step fractional numerator" desc="Numerator for fractional time step">0</time_step_fract_num>
+	<time_step_fract_den name="Time step fractional denominator" desc="denominator for fractional time step">1</time_step_fract_den>
+	<max_dom name="Max domain" desc="The number of domains over which you are running">%MAX_DOM%</max_dom>
+     <parent_ids name="Parent ID" desc="A list of MAX_DOM integers specifying, for each nest, the domain number of the nest's parent; for the coarsest domain, this variable should be set to 1">
+	<parent_id domain="d01">1</parent_id>
+     </parent_ids>	
+     <parent_grid_ratios name="Parent grid ratio" desc="A list of integers specifying, for each nest, the nesting ratio relative to the domain's parent">
+	<parent_grid_ratio domain="d01">1</parent_grid_ratio>
+     </parent_grid_ratios>
+     <i_parent_starts name="I-parent start" desc="A list of integers specifying, for each nest, the x-coordinate of the lower-left corner of the nest in the parent unstaggered grid. For the coarsest domain, a value of 1 should be specified">        
+	<i_parent_start domain="d01">1</i_parent_start>
+      </i_parent_starts>
+      <j_parent_starts name="J-parent start" desc="A list of MAX_DOM integers specifying, for each nest, the x-coordinate of the lower-left corner of the nest in the parent unstaggered grid. For the coarsest domain, a value of 1 should be specified">
+	<j_parent_start domain="d01">1</j_parent_start>
+      </j_parent_starts>
+      <e_wes name="E-WE" desc="A list of integers specifying, for each nest, the nest's full west-east dimension. For nested domains, e_we must be one greater than an integer multiple of the nest's parent_grid_ratio (i.e., e_we = n*parent_grid_ratio+1 for some positive integer n)">
+	<e_we domain="d01">100</e_we>
+      </e_wes>
+      <e_sns name="E-SN" desc="A list of integers specifying, for each nest, the nest's full south-north dimension. For nested domains, e_sn must be one greater than an integer multiple of the nest's parent_grid_ratio (i.e., e_sn = n*parent_grid_ratio+1 for some positive integer n)">
+	<e_sn domain="d01">130</e_sn>
+      </e_sns>
+      <s_wes name="S-WE" desc="A list of integers which should all be set to 1">
+	<s_we domain="d01">1</s_we>
+      </s_wes>
+      <s_sns name="S-SN" desc="A list of integers which should all be set to 1">
+	<s_sn domain="d01">1</s_sn>
+      </s_sns>
+      <s_verts name="Start Vertical" desc="Start index in z (vertical) direction ">
+	<s_vert domain="d01">1</s_vert>
+      </s_verts>
+      <e_verts name="End Vertical" desc="End index in z (vertical) direction (staggered dimension -- this refers to full levels">	
+	<e_vert domain="d01">28</e_vert>
+      </e_verts>
+	<max_dz name="Max dz" desc="Maximal interval (m) between vertical levels">2000</max_dz>
+	<p_top_requested name="P-top requested" desc="Pressure top used in the model">1000</p_top_requested>
+	<num_metgrid_levels name="Number metgrid level" desc="Number of incoming data levels (can be found by using the ncdump command on the met_em.* file)">27</num_metgrid_levels>
+	<num_metgrid_soil_levels name="Number of metgrid soil level" desc="number of incoming soil data levels">4</num_metgrid_soil_levels>
+      <dxs name="DX" desc="A real value specifying the grid distance in the x-direction where the map scale factor is 1">
+	<dx domain="d01">9000</dx>
+      </dxs>
+      <dys name="DY" desc="A real value specifying the grid distance in the y-direction where the map scale factor is 1">
+	<dy domain="d01">9000</dy>
+      </dys>
+      <grid_ids name="Grid ID" desc="Domain identifier that is used in the wrfout naming convention. The most coarse grid must have grid_id of 1">
+	<grid_id domain="d01">1</grid_id>
+      </grid_ids>
+      <parent_time_step_ratios name="Parent time step ratio" desc="Integer parent-to-nest domain grid size ratio. Typically an odd number ratio is used in real-data applications.">
+	<parent_time_step_ratio domain="d01">1</parent_time_step_ratio>
+      </parent_time_step_ratios>
+	<feedback name="Feedback" desc="this is the key setup to define a two-way nested (or one-way nested) run. When feedback is on, the values of the coarse domain are overwritten by the values of the variables (average of cell values for mass points, and average of the cell-face values for horizontal momentum points) in the nest at the coincident points. For masked fields, only the single point value at the collocating points is fed back. If the parent_grid_ratio is even, an arbitrary choice of  the southwest corner point value is used for feedback. This is the reason it is better to use an odd parent_grid_ratio with this option. When feedback is off , it is equivalent to a one-way nested run, since nest results are not reflected in the parent domain.">1</feedback>
+	<smooth_option name="Smotoh option" desc="this a smoothing option for the parent domain in the area of the nest if feedback is on. Three options are available: 0 = no smoothing; 1 = 1-2-1 smoothing; 2 = smoothing-desmoothing.">0</smooth_option>
+   </domains>
+  
+  <physics>
+      <mp_physicss name="MP_physics" desc="Microphysics">
+	<mp_physics domain="d01">8</mp_physics>
+      </mp_physicss>  
+      <ra_lw_physicss name="RA_LW_physics" desc="Longwave Radiation">
+	<ra_lw_physics domain="d01">1</ra_lw_physics>
+      </ra_lw_physicss>
+      <ra_sw_physicss name="RA_SW_physics" desc="Shortwave Radiation">
+	<ra_sw_physics domain="d01">1</ra_sw_physics>
+      </ra_sw_physicss>
+      <radts name="Radt" desc="Input to radiation options">
+	<radt domain="d01">30</radt>
+      </radts>
+      <sf_sfclay_physicss name="SF_SFCLAY_physics" desc="Surface Layer">
+	<sf_sfclay_physics domain="d01">1</sf_sfclay_physics>
+      </sf_sfclay_physicss>
+      <sf_surface_physicss name="SF_SURFACE_physics" desc="Land Surface">
+	<sf_surface_physics domain="d01">1</sf_surface_physics>
+      </sf_surface_physicss>
+      <bl_pbl_physicss name="BL_PBL_physics" desc="Planetary Boundary layer">
+	<bl_pbl_physics domain="d01">1</bl_pbl_physics>
+      </bl_pbl_physicss>
+      <bldts name="Bldt" desc="Minutes between boundary-layer physics calls "> 
+	<bldt domain="d01">0</bldt> 
+     </bldts>  
+     <cu_physicss name="CU_physics" desc="Cumulus Parameterization">
+    	<cu_physics domain="d01">2</cu_physics>   
+     </cu_physicss>
+     <cudts name="Cudt" desc="Minutes between cumulus physics calls; should be set to 0 when using all cu_physics except Kain-Fritsch (0 = call every time step)">
+	<cudt domain="d01">5</cudt>
+    </cudts>
+	<isfflx name="IsFFlx" desc="Heat and moisture fluxes from the surface for real-data cases and when a PBL is used (only works with sf_sfclay_physics=1, 5, 7, or 11). 1 = fluxes are on,0 = fluxes are off">1</isfflx>
+	<ifsnow name="IfSnow" desc="Snow-cover effects (only works for sf_surface_physics=1)">0</ifsnow>
+	<icloud name="ICloud" desc="Cloud effect to the optical depth in radiation">1</icloud>
+	<surface_input_source name="Surface input source" desc="Where landuse and soil category data come from">1</surface_input_source>
+	<num_soil_layers name="Num soil layers" desc="Number of soil layers in land surface model">5</num_soil_layers>
+	<maxiens name="Maxiens" desc="Grell-Devenyi and G3 only">1</maxiens>
+	<maxens name="Maxens" desc="Grell-Devenyi only">3</maxens>
+	<maxens2 name="Maxens2" desc="Grell-Devenyi only">3</maxens2>
+	<maxens3 name="Maxens3" desc="Grell-Devenyi only">16</maxens3>
+	<ensdim name="Ensdim" desc="Grell-Devenyi only">144</ensdim>
+  </physics>
+
+  <ffda>
+  </ffda>
+
+  <dynamics name="Dynamics" desc="Diffusion, damping option, advection option">
+	<dyn_opt name="Dyn_opt" desc="Dynamical core option: advanced research WRF core (Eulerian mass)">2</dyn_opt>
+	<rk_ord name="Rk_ord" desc="time-integration scheme option">3</rk_ord>
+	<w_damping name="W_Damping" desc="Vertical velocity damping">0</w_damping>
+	<diff_opt name="Diff Opt" desc="turbulence and mixing option no turbulence or explicit spatial numerical filters (km_opt is ignored)">0</diff_opt>
+	<km_opt name="KM_OPT" desc="Eddy coefficient option">1</km_opt>
+	<damp_opt name="Damp_opt" desc="Either a layer of increased diffusion">0</damp_opt>
+	<base_temp name="Base_temp" desc="Base state temperature (K); real only">290</base_temp>
+    <zdamps name="Zdamp" desc="Damping depth (m) from model top">
+	<zdamp domain="d01">5000</zdamp>
+    </zdamps>
+    <dampcoefs name="DampCoeff" desc="Damping coefficient">
+	<dampcoef domain="d01">0.01</dampcoef>
+    </dampcoefs>
+    <khdifs name="Khdif" desc="Horizontal diffusion constant">
+	<khdif domain="d01">0</khdif>
+    </khdifs>
+    <kvdifs name="Kvdif" desc="Vertical diffusion constant">
+	<kvdif domain="d01">0</kvdif>
+    </kvdifs>
+    <smdivs name="Smdiv" desc="Divergence damping">
+	<smdiv domain="d01">0.1</smdiv>
+    </smdivs>
+    <emdivs name="Emdiv" desc="External-mode filter coef for mass coordinate model">
+	<emdiv domain="d01">0.01</emdiv>
+    </emdivs>
+    <epssms name="Epssm" desc="Time off-centering for vertical sound waves">
+	<epssm domain="d01">0.1</epssm>
+    </epssms>
+    <non_hydrostatics name="Non_hydrostatic" desc="Running the model in non-hydrostatic mode">
+	<non_hydrostatic domain="d01">true</non_hydrostatic>
+    </non_hydrostatics>
+    <time_step_sounds name="Time step sound" desc="number of sound steps per timestep (if using a time_step much larger than 6*DX (in km), increase number of sound steps">
+	<time_step_sound domain="d01">4</time_step_sound>
+    </time_step_sounds>
+    <h_mom_adv_orders name="H_mom_adv_order" desc="Horizontal advection orders for momentum">
+	<h_mom_adv_order domain="d01">5</h_mom_adv_order>
+    </h_mom_adv_orders>
+    <v_mom_adv_orders name="V_mom_adv_order" desc="Vertical advection orders for momentum">
+	<v_mom_adv_order domain="d01">3</v_mom_adv_order>
+    </v_mom_adv_orders>
+    <h_sca_adv_orders name="H_sca_adv_order" desc="Scalar and horizontal advection orders for momentum">
+	<h_sca_adv_order domain="d01">3</h_sca_adv_order>
+    </h_sca_adv_orders> 
+    <v_sca_adv_orders name="V_sca_adv_order" desc="Scalar and vertical advection orders for momentum">
+	<v_sca_adv_order domain="d01">2</v_sca_adv_order>
+    </v_sca_adv_orders>
+  </dynamics>
+
+  <bdy_control name="Boundary control" desc="Buondary condition control">
+	<spec_bdy_width name="Spec bdy width" desc="Total number of rows for specified boundary value nudging">5</spec_bdy_width>
+	<spec_zone name="Spec_zone" desc="Number of points in specified zone">1</spec_zone>
+	<relax_zone name="Relax zone" desc="Number of points in relaxation zone">4</relax_zone>
+    <specifieds>
+	<specified domain="d01">true</specified>
+    </specifieds> 
+    <periodic_xs name="Periodic X" desc="Periodic boundary conditions in x-direction">
+	<periodic_x domain="d01">false</periodic_x>
+    </periodic_xs>
+    <symmetric_xss name="Symmetric XS" desc="Symmetric boundary conditions at x start">
+	<symmetric_xs domain="d01">false</symmetric_xs>
+    </symmetric_xss>
+    <symmetric_xes name="Symmetric WE" desc="Symmetric boundary conditions at x end">
+	<symmetric_xe domain="d01">false</symmetric_xe>
+   </symmetric_xes>
+   <open_xss name="Open XS" desc="Open boundary conditions at x start">
+	<open_xs domain="d01">false</open_xs>
+   </open_xss>
+   <open_xes name="Open XE" desc="Open boundary conditions at x end">
+        <open_xe domain="d01">false</open_xe>
+   </open_xes> 
+   <periodic_ys name="Periodic Y" desc="Periodic boundary conditions in y-direction">
+        <periodic_y domain="d01">false</periodic_y>
+    </periodic_ys> 
+    <symmetric_yss name="Symmetric YS" desc="symmetric boundary conditions at y start">
+        <symmetric_ys domain="d01">false</symmetric_ys>
+    </symmetric_yss>
+    <symmetric_yes name="Symmetric YE" desc="Symmetric boundary conditions at y end">
+        <symmetric_ye domain="d01">false</symmetric_ye>
+   </symmetric_yes>
+   <open_yss name="Open YS" desc="Open boundary conditions at y start">
+        <open_ys domain="d01">false</open_ys>
+   </open_yss>
+   <open_yes name="Open YE" desc="Open boundary conditions at y end">
+        <open_ye domain="d01">false</open_ye>
+   </open_yes>
+   <nesteds name="Nested" desc="Nested boundary conditions">
+	<nested domain="d01">false</nested>
+   </nesteds>
+  </bdy_control>
+ 
+ <grib2>
+  <namelist_quilt name="Namelist quilt" desc="Options for asynchronized I/O for MPI applications">
+	<nio_tasks_per_group name="NIO task per group" desc="0=no quilting, >0 # of processors used for IO quilting per IO group">0</nio_tasks_per_group>
+	<nio_groups name="NIO group" desc="May be set to higher value for nesting IO or history and restart IO">1</nio_groups>
+  </namelist_quilt>
+  </grib2>
+
+
+  </wrf>
+
+  <arw>
+    <datetime>
+      <start_date name="" desc="">%IYEAR%-%IMONTH%-%IDAY%_%IHOUR%:00:00</start_date>
+      <end_date name="" desc="">%FYEAR%-%FMONTH%-%FDAY%_%FHOUR%:00:00</end_date>
+      <interval_seconds name="" desc="">%INTERVAL_SECONDS%</interval_seconds>
+      <tacc name="" desc="">0</tacc>
+      <debug_level name="" desc="">0</debug_level>
+    </datetime>
+    <io>
+      <input_root_name name="" desc="">./wrfout_d01_</input_root_name>
+      <output_root_name name="" desc="">./wrfout_d01</output_root_name>
+      <plot name="" desc="">all_list</plot>
+      <fieldss name="" desc="">
+        <fields>height</fields>  
+        <fields>pressure</fields>
+        <fields>tk</fields>
+	<fields>tc</fields>
+      </fieldss>
+      <mercator_defs name="" desc="">true</mercator_defs>
+    </io>
+    <split_output name="" desc="">true</split_output>
+    <frames_per_outfile name="" desc="">2</frames_per_outfile>
+    <plot name="" desc="">all</plot>
+    <plot name="" desc="">list</plot>
+    <plot name="" desc="">all_list</plot>
+    <fieldss name="" desc="">
+      <fields>height</fields>
+      <fields>geopt</fields>
+      <fields>theta</fields>
+      <fields>tc</fields>
+      <fields>tk</fields>
+      <fields>td</fields>
+      <fields>td2</fields>
+      <fields>rh</fields>
+      <fields>rh2</fields>
+      <fields>umet</fields>
+      <fields>vmet</fields>
+      <fields>pressure</fields>
+      <fields>u10m</fields>
+      <fields>v10m</fields>
+      <fields>wdir</fields>
+      <fields>wspd</fields>
+      <fields>wd10</fields>
+      <fields>ws10</fields>
+      <fields>slp</fields>
+      <fields>mcape</fields>
+      <fields>mcin</fields>
+      <fields>lcl</fields>
+      <fields>lfc</fields>
+      <fields>cape</fields>
+      <fields>cin</fields>
+      <fields>dbz</fields>
+      <fields>max_dbz</fields>
+      <fields>clfr</fields>
+    </fieldss>
+ 
+    <interp name="" desc="">
+      <interp_method1 name="" desc="">0</interp_method1>
+      <interp_levelss name="" desc="">	
+        <interp_levels>1000.</interp_levels>
+	<interp_levels>950.</interp_levels>
+	<interp_levels>900.</interp_levels>
+        <interp_levels>850.</interp_levels>
+        <interp_levels>800.</interp_levels>
+        <interp_levels>750.</interp_levels>
+        <interp_levels>700.</interp_levels>
+        <interp_levels>650.</interp_levels>
+        <interp_levels>600.</interp_levels>
+        <interp_levels>550.</interp_levels>
+        <interp_levels>500.</interp_levels>
+        <interp_levels>450.</interp_levels>
+        <interp_levels>400.</interp_levels>
+        <interp_levels>350.</interp_levels>
+        <interp_levels>300.</interp_levels>
+        <interp_levels>250.</interp_levels>
+        <interp_levels>200.</interp_levels>
+        <interp_levels>150.</interp_levels>
+        <interp_levels>100.</interp_levels>
+      </interp_levelss>
+    </interp>
+    <extrapolate name="" desc="">true</extrapolate>
+    <interp_method name="" desc="0 is model levels, -1 is nice height levels, 1 is user specified pressure/height">0</interp_method>
+    <interp_levelss name="" desc="">
+      <interp_levels>1000.</interp_levels>
+      <interp_levels>950.</interp_levels>
+      <interp_levels>900.</interp_levels>
+      <interp_levels>850.</interp_levels>
+      <interp_levels>800.</interp_levels>
+      <interp_levels>750.</interp_levels>
+      <interp_levels>700.</interp_levels>
+      <interp_levels>650.</interp_levels>
+      <interp_levels>600.</interp_levels>
+      <interp_levels>550.</interp_levels>
+      <interp_levels>500.</interp_levels>
+      <interp_levels>450.</interp_levels>
+      <interp_levels>400.</interp_levels>
+      <interp_levels>350.</interp_levels>
+      <interp_levels>300.</interp_levels>
+      <interp_levels>250.</interp_levels>
+      <interp_levels>200.</interp_levels>
+      <interp_levels>150.</interp_levels>
+      <interp_levels>100.</interp_levels>
+    </interp_levelss>
+    <interp_levelss1 name="" desc="">
+      <interp_levels1>0.25</interp_levels1>
+      <interp_levels1>0.50</interp_levels1>
+      <interp_levels1>0.75</interp_levels1>
+      <interp_levels1>1.00</interp_levels1>
+      <interp_levels1>2.00</interp_levels1>
+      <interp_levels1>3.00</interp_levels1>
+      <interp_levels1>4.00</interp_levels1>
+      <interp_levels1>5.00</interp_levels1>
+      <interp_levels1>6.00</interp_levels1>
+      <interp_levels1>7.00</interp_levels1>
+      <interp_levels1>8.00</interp_levels1>
+      <interp_levels1>9.00</interp_levels1>
+      <interp_levels1>10.0</interp_levels1>
+      <interp_levels1>11.0</interp_levels1>
+      <interp_levels1>12.0</interp_levels1>
+      <interp_levels1>13.0</interp_levels1>
+      <interp_levels1>14.0</interp_levels1>
+      <interp_levels1>15.0</interp_levels1>
+      <interp_levels1>16.0</interp_levels1>
+      <interp_levels1>17.0</interp_levels1>
+      <interp_levels1>18.0</interp_levels1>
+      <interp_levels1>19.0</interp_levels1>
+      <interp_levels1>20.0</interp_levels1>
+    </interp_levelss1>
+  </arw>
+</wrf_config>

@@ -1,0 +1,148 @@
+#!/bin/bash 
+
+wrf_model=$1
+wrfOutputDsRef=$2
+wrfTimeLatLon=$3
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/wrf-aggr"
+cd $THISDIR
+mkdir inputs
+mkdir outputs
+
+dsref2files -i $wrfOutputDsRef -o $THISDIR/inputs -n "http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wrf/wrf_output"
+
+lat=`xmllint --xpath '//wps/geogrid/ref_lat/text()' $wrf_model`
+lon=`xmllint --xpath '//wps/geogrid/ref_lon/text()' $wrf_model`
+dy=`xmllint --xpath '//wps/geogrid/dy/text()' $wrf_model`
+dx=`xmllint --xpath '//wps/geogrid/dx/text()' $wrf_model`
+sn=`xmllint --xpath '//wps/geogrid/e_sns/e_sn/text()' $wrf_model`
+ws=`xmllint --xpath '//wps/geogrid/e_wes/e_we/text()' $wrf_model`
+
+xsize=$ws
+ysize=$sn
+xfirst=$(printf %.4f $(echo "$lon - 0.5*$ws*$dx/111120"|bc -l))
+yfirst=$(printf %.4f $(echo "$lat - 0.5*$sn*$dy/111120"|bc -l))
+
+inc=$(printf %.4f $(echo "($dx + $dy )/222240" | bc -l))
+
+cat > mygrid << EOF
+gridtype = lonlat
+xsize  = $xsize         # nx
+ysize  = $ysize         # ny
+xfirst = $xfirst # initial lon value
+xinc   = $inc         # dx
+yfirst = $yfirst      # initial lat value
+yinc   = $inc         # dy
+EOF
+
+cat > myzaxis << EOF
+zaxistype = pressure
+    size      = 27
+    levels    = 99650 98800 97650 96200 94400 92150 89450 84401.45 77204.36 70007.26 62810.17 53589.59 43220.37 34487.07 27174.59 21091.62 16068.39 12057.65 8980.146 6627.408 4828.748 3453.679 2402.444 1598.778 984.378 514.6716 155.5818
+EOF
+
+cat > cdo-wrf2tll << EOF
+#!/bin/bash
+
+file=\$1
+grid=\$2
+count30=\$3
+
+if [ "\$#" -ne 3 ]; then
+  echo "Usage: cdo-wrf2tll wrfout_file gridtoinrpolate wrf_timelatitudelongitude_file"
+fi
+
+echo "Processing: \$count30"
+
+P00=\`ncdump -v P00 /scratch/galaxy/files/009/dataset_9538.dat | grep "P00 ="|awk '{ print \$3}'\`
+echo \$P00
+
+cdo select,name=CLDFRA,SINALPHA,COSALPHA,Q2,T2,U10,V10,PSFC,RAINC,RAINNC,SNOWC,SNOWNC \$file A\${count30}_nozaxis.nc
+cdo setzaxis,myzaxis A\${count30}_nozaxis.nc A\${count30}.nc
+rm A\${count30}_nozaxis.nc
+
+echo "Remapping..."
+cdo remapbil,\${grid} A\${count30}.nc B\${count30}.nc
+rm A\${count30}.nc
+
+echo "Computing..."
+
+cdo expr,'RAIN=RAINC+RAINNC' B\${count30}.nc C\${count30}_RAIN.nc
+ncatted -a FieldType,RAIN,a,c,104 C\${count30}_RAIN.nc
+ncatted -a MemoryOrder,RAIN,a,c,"XY " C\${count30}_RAIN.nc
+ncatted -a description,RAIN,a,c,"ACCUMULATED TOTAL PRECIPITATION" C\${count30}_RAIN.nc
+ncatted -a units,RAIN,a,c,"mm" C\${count30}_RAIN.nc
+ncatted -a stagger,RAIN,a,c,"" C\${count30}_RAIN.nc
+ncatted -a coordinates,RAIN,a,c,"lon lat XTIME" C\${count30}_RAIN.nc
+
+cdo expr,'U10M=V10*SINALPHA+U10*COSALPHA' B\${count30}.nc C\${count30}_U10M.nc
+ncatted -a FieldType,U10M,a,c,104 C\${count30}_U10M.nc
+ncatted -a MemoryOrder,U10M,a,c,"XY " C\${count30}_U10M.nc
+ncatted -a description,U10M,a,c,"U at 10 M (met)" C\${count30}_U10M.nc
+ncatted -a units,U10M,a,c,"m s-1" C\${count30}_U10M.nc
+ncatted -a stagger,U10M,a,c,"" C\${count30}_U10M.nc
+ncatted -a coordinates,U10M,a,c,"lon lat XTIME" C\${count30}_U10M.nc
+
+cdo expr,'V10M=V10*COSALPHA-U10*SINALPHA' B\${count30}.nc C\${count30}_V10M.nc
+ncatted -a FieldType,V10M,a,c,104 C\${count30}_V10M.nc
+ncatted -a MemoryOrder,V10M,a,c,"XY " C\${count30}_V10M.nc
+ncatted -a description,V10M,a,c,"V at 10 M (met)" C\${count30}_V10M.nc
+ncatted -a units,V10M,a,c,"m s-1" C\${count30}_V10M.nc
+ncatted -a stagger,V10M,a,c,"" C\${count30}_V10M.nc
+ncatted -a coordinates,V10M,a,c,"lon lat XTIME" C\${count30}_V10M.nc
+
+cdo expr,'T2C=T2-273' B\${count30}.nc C\${count30}_T2C.nc
+ncatted -a FieldType,T2C,a,c,104 C\${count30}_T2C.nc
+ncatted -a MemoryOrder,T2C,a,c,"XY " C\${count30}_T2C.nc
+ncatted -a description,T2C,a,c,"TEMP at 2M" C\${count30}_T2C.nc
+ncatted -a units,T2C,a,c,"C" C\${count30}_T2C.nc
+ncatted -a stagger,T2C,a,c,"" C\${count30}_T2C.nc
+ncatted -a coordinates,T2C,a,c,"lon lat XTIME" C\${count30}_T2C.nc
+
+cdo expr,'RH2=Q2 / ( (379.90516 / PSFC) * exp(17.2693882 * (T2 - 273.16) / (T2 - 35.86)) )' B\${count30}.nc C\${count30}_RH2.nc
+ncatted -a FieldType,RH2,a,c,104 C\${count30}_RH2.nc
+ncatted -a MemoryOrder,RH2,a,c,"XY " C\${count30}_RH2.nc
+ncatted -a description,RH2,a,c,"RH at 2M" C\${count30}_RH2.nc
+ncatted -a units,RH2,a,c,"C" C\${count30}_RH2.nc
+ncatted -a stagger,RH2,a,c,"" C\${count30}_RH2.nc
+ncatted -a coordinates,RH2,a,c,"lon lat XTIME" C\${count30}_RH2.nc
+
+cdo select,name=CLDFRA,PSFC,SNOWC,SNOWNC B\${count30}.nc C\${count30}_PSFC_SNOWC_SNOWNC.nc
+rm B\${count30}.nc
+echo "Merging..."
+cdo merge C\${count30}_* result\${count30}.nc
+rm C\${count30}_*.nc
+
+EOF
+chmod +x cdo-wrf2tll
+
+nprocs=`nproc`
+nprocs=$(printf %.0f $(echo "$nprocs * .50"|bc -l))
+if [[ "$nprocs" == "0" ]]
+then
+  nprocs="1"
+fi
+
+declare -i count
+count=0
+files=`ls $THISDIR/inputs/*`
+for file in $files
+do
+  count30=$count
+  if [ $count -lt 100 ]
+  then
+    count30="0$count"
+  fi
+  if [ $count -lt 10 ]
+  then
+    count30="0$count30"
+  fi
+  sem -j$nprocs ./cdo-wrf2tll $file mygrid $count30 2>&1
+  count=$count+1
+done
+echo "Waiting..."
+sem --wait
+echo "Concatenating..."
+cdo -s cat result*.nc $wrfTimeLatLon
+rm result*.nc

@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# Check if the number of parameters is correct
+if [ $# -ne 2 ]
+then
+    echo "Usage: geogrid <wrfmodel:filename> <gfsdsref:filename>"
+    exit -1
+fi
+
+wrf_model=$1
+gfsOutputDsRef=$2
+
+THISDIR=`pwd`
+cd $THISDIR
+
+INITIAL=`xmllint --xpath '//start_date/text()' $wrf_model | awk '{print substr($0, 0, 19)}'`
+FINAL=`xmllint --xpath '//end_date/text()' $wrf_model | awk '{print substr($0, 0, 19)}'`
+INTERVAL_SECONDS=`xmllint --xpath '(//interval_seconds/text())[1]' $wrf_model`
+
+# Starting simulation date
+ IYEAR=`expr substr $INITIAL 1 4`
+IMONTH=`expr substr $INITIAL 6 2`
+  IDAY=`expr substr $INITIAL 9 2`
+ IHOUR=`expr substr $INITIAL 12 2`
+
+IDATE=`date --date "$IYEAR-$IMONTH-$IDAY $IHOUR:00" +%s`
+
+ FYEAR=`expr substr $FINAL 1 4`
+FMONTH=`expr substr $FINAL 6 2`
+  FDAY=`expr substr $FINAL 9 2`
+ FHOUR=`expr substr $FINAL 12 2`
+
+FDATE=`date --date "$FYEAR-$FMONTH-$FDAY $FHOUR:00" +%s`
+
+HOURS=$(( (FDATE - IDATE) / 3600 ))
+STEP=$(( INTERVAL_SECONDS / 3600 ))
+
+getgfsfromncep ${IYEAR}${IMONTH}${IDAY} ${IHOUR} ${HOURS} ${STEP} $gfsOutputDsRef
+

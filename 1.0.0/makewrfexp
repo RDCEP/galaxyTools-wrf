@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Check if the number of parameters is correct
+if [ $# -ne 9 ]
+then
+    echo "Usage: makewrfexp <area:michigan-lake> <year:2015> <month:10> <day:21> <hour:00> <hours:24> <interval:21600> <domains:1> <wrfmodel:filename>"
+    exit -1
+fi
+
+AREA=$1
+IYEAR=$2
+IMONTH=$3
+IDAY=$4
+IHOUR=$5
+HOURS=$6
+INTERVAL_SECONDS=$7
+MAX_DOM=$8
+output=$9
+
+# Ending simulation date
+FDATE=`date --date "$IYEAR-$IMONTH-$IDAY +$HOURS hour $IHOUR:00" +%Y%m%dZ%H`
+FYEAR=`expr substr $FDATE 1 4`
+FMONTH=`expr substr $FDATE 5 2`
+FDAY=`expr substr $FDATE 7 2`
+FHOUR=$IHOUR
+
+cat > wrf.properties << EOF
+IYEAR=$IYEAR
+IMONTH=$IMONTH
+IDAY=$IDAY
+IHOUR=$IHOUR
+FYEAR=$FYEAR
+FMONTH=$FMONTH
+FDAY=$FDAY
+FHOUR=$FHOUR
+INTERVAL_SECONDS=$INTERVAL_SECONDS
+MAX_DOM=$MAX_DOM
+EOF
+
+# This is a temporary shortcut
+fill-template $PACKAGE_BASE/wrf_model_template.${AREA}.xml wrf.properties $output

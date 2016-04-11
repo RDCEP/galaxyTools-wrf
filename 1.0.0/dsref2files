@@ -1,0 +1,42 @@
+#! /usr/bin/python
+
+from lxml import etree
+import shutil,os,sys, getopt
+import glob,re,getopt,subprocess
+
+def main(argv):
+  inputfile = ''
+  outputpath = ''
+  namespace = ''
+  try:
+    opts, args = getopt.getopt(argv,"hi:o:n:",["ifile=","opath=","namespace="])
+  except getopt.GetoptError:
+    print 'dsref2files -i <inputfile> -o <outputpath> -n <namespace>'
+    sys.exit(2)
+  for opt, arg in opts:
+    if opt == '-h':
+      print 'dsref2files -i <inputfile> -o <outputpath> -n <namespace>'
+      sys.exit()
+    elif opt in ("-i", "--ifile"):
+       inputfile = arg
+    elif opt in ("-o", "--opath"):
+       outputpath = arg
+    elif opt in ("-n", "--namespace"):
+       namespace = arg
+
+  #print inputfile
+  #print outputpath
+  #namespace='http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wps/geogrid_output'
+
+  doc = etree.parse(inputfile)
+                      
+  refs = doc.findall('{'+namespace+'}dataSetRef')
+  if refs is not None:
+    for ref in refs:
+      src=ref.get('file_name')
+      name=ref.get('name')
+      dst=outputpath+os.sep+name[name.find("(")+1:name.find(")")]
+      shutil.copyfile(src,dst)
+
+if __name__ == "__main__":
+   main(sys.argv[1:])

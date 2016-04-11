@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Check if the number of parameters is correct
+if [ $# -ne 3 ]
+then
+    echo "Usage: ungrib <wrfmodel:filename> <gfsDsRef:filename> <fileDsRef:filename>"
+    exit -1
+fi
+
+wrf_model=$1
+gfsDsRef=$2
+fileDsRef=$3
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/ungrib"
+cd $THISDIR
+
+cp $gfsDsRef .
+
+mkdir outputs
+mkdir inputs
+
+xml2namelist -f $wrf_model
+
+# Get files from reference
+#gfsDsRef2files -i $gfsDsRef -o $THISDIR/inputs/
+dsref2files -i $gfsDsRef -o $THISDIR/inputs/ -n "http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wps/gfs"
+
+if [ "$WRF_ROOT" == "" ]
+then
+  echo "WRF_ROOT not defined!"
+  exit 1
+fi
+
+#queue="batch"
+threads=1
+nodes=1
+ppn=1
+
+# Soft link to executable and data
+ln -sf $WRF_ROOT/WPS/ungrib.exe
+ln -sf $WRF_ROOT/WPS/link_grib.csh
+ln -sf $WRF_ROOT/WPS/ungrib/Variable_Tables/Vtable.GFS Vtable
+
+
+
+# Link grib files
+#mv link_grib.csh $THISDIR/inputs
+#mv Vtable $THISDIR/inputs
+#mv ungrib.exe $THISDIR/inputs
+./link_grib.csh $THISDIR/inputs/
+
+
+#
+cat > ungrib.pbs << EOF
+#!/bin/bash
+
+#PBS -l nodes=$nodes:ppn=$ppn
+#PBS -l walltime=1:00:00
+#PBS -j oe
+#PBS -N ungrib-$jobId
+#PBS -k oe
+
+cd $THISDIR
+
+export MPI_HOME=$MPI_HOME
+export PATH=\$MPI_HOME/bin:\$PATH
+export LD_LIBRARY_PATH=\$MPI_HOME/lib:\$LD_LIBRARY_PATH
+
+export NETCDF=$NETCDF
+export PATH=\$NETCDF/bin:\$PATH
+export LD_LIBRARY_PATH=\$NETCDF/lib:\$LD_LIBRARY_PATH
+
+echo "nodefile: \$PBS_NODEFILE"
+echo "-----------------------"
+cat \$PBS_NODEFILE
+echo "-----------------------"
+
+$THISDIR/ungrib.exe 2>&1 
+EOF
+
+#bsub ungrib.pbs
+export OMP_NUM_THREADS=$threads
+./ungrib.exe 2>&1 
+
+cd $THISDIR
+mv FILE* outputs/
+
+cat > $fileDsRef << __EOF__
+*** TEMPORARY ***
+__EOF__
+

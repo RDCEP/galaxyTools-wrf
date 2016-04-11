@@ -1,0 +1,44 @@
+#!/bin/bash
+
+# Check if the number of parameters is correct
+if [ $# -ne 10 ]
+then
+    echo "Usage: makewrfexp <center_lon:-87> <center_lon:43> <year:2015> <month:10> <day:21> <hour:00> <hours:24> <interval:21600> <domains:1> <wrfmodel:filename>"
+    exit -1
+fi
+
+CLON=$1
+CLAT=$2
+IYEAR=$3
+IMONTH=$4
+IDAY=$5
+IHOUR=$6
+HOURS=$7
+INTERVAL_SECONDS=$8
+MAX_DOM=$9
+output=${10}
+
+# Ending simulation date
+FDATE=`date --date "$IYEAR-$IMONTH-$IDAY +$HOURS hour $IHOUR:00" +%Y%m%dZ%H`
+FYEAR=`expr substr $FDATE 1 4`
+FMONTH=`expr substr $FDATE 5 2`
+FDAY=`expr substr $FDATE 7 2`
+FHOUR=$IHOUR
+
+cat > wrf.properties << EOF
+CLON=$CLON
+CLAT=$CLAT
+IYEAR=$IYEAR
+IMONTH=$IMONTH
+IDAY=$IDAY
+IHOUR=$IHOUR
+FYEAR=$FYEAR
+FMONTH=$FMONTH
+FDAY=$FDAY
+FHOUR=$FHOUR
+INTERVAL_SECONDS=$INTERVAL_SECONDS
+MAX_DOM=$MAX_DOM
+EOF
+
+# This is a temporary shortcut
+fill-template $PACKAGE_BASE/wrf_model_template.generic-9000-3000-100-333m.xml wrf.properties $output

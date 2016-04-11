@@ -1,0 +1,111 @@
+#!/bin/bash
+
+
+wrf_model=$1
+wrfMaxDomain=$2
+wrfInputDsRef=$3
+wrfBoundary=$4
+wrfOutputDsRef=$5
+wrfRestartDsRef=$6
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/wrf"
+cd $THISDIR
+mkdir outputs
+mkdir restarts
+
+xml2namelist -f $wrf_model
+
+# Change the mex dom if needed
+cat namelist.input | sed "s|max_dom.*|max_dom = $wrfMaxDomain|g" > namelist.input.tmp
+cp namelist.input.tmp namelist.input
+rm namelist.input.tmp
+
+#Extract real output (wrfInput)
+dsref2files -i $wrfInputDsRef -o $THISDIR -n "http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wrf/real_input_output"
+cp $wrfBoundary wrfbdy_d01
+
+if [ "$WRF_ROOT" == "" ]
+then
+  echo "WRF_ROOT not defined!"
+  exit 1
+fi
+
+#queue="batch"
+threads=8
+nodes=1
+ppn=1
+
+# Soft link to executable and data
+ln -s $WRF_ROOT/WRFV3/run/wrf.exe
+ln -s $WRF_ROOT/WRFV3/run/real.exe
+ln -s $WRF_ROOT/WRFV3/run/nup.exe
+ln -s $WRF_ROOT/WRFV3/run/ndown.exe
+
+ln -s $WRF_ROOT/WRFV3/run/CAM_ABS_DATA
+ln -s $WRF_ROOT/WRFV3/run/CAM_AEROPT_DATA
+ln -s $WRF_ROOT/WRFV3/run/ETAMPNEW_DATA
+ln -s $WRF_ROOT/WRFV3/run/ETAMPNEW_DATA_DBL
+ln -s $WRF_ROOT/WRFV3/run/GENPARM.TBL
+ln -s $WRF_ROOT/WRFV3/run/grib2map.tbl
+ln -s $WRF_ROOT/WRFV3/run/gribmap.txt
+ln -s $WRF_ROOT/WRFV3/run/LANDUSE.TBL
+
+ln -s $WRF_ROOT/WRFV3/run/ozone.formatted
+ln -s $WRF_ROOT/WRFV3/run/ozone_lat.formatted
+ln -s $WRF_ROOT/WRFV3/run/ozone_plev.formatted
+
+ln -s $WRF_ROOT/WRFV3/run/RRTM_DATA
+ln -s $WRF_ROOT/WRFV3/run/RRTM_DATA_DBL
+ln -s $WRF_ROOT/WRFV3/run/SOILPARM.TBL
+
+ln -s $WRF_ROOT/WRFV3/run/tr49t67
+ln -s $WRF_ROOT/WRFV3/run/tr49t85
+ln -s $WRF_ROOT/WRFV3/run/tr67t85
+
+ln -s $WRF_ROOT/WRFV3/run/URBPARM.TBL
+ln -s $WRF_ROOT/WRFV3/run/VEGPARM.TBL
+
+cat > wrf.pbs << EOF
+#!/bin/bash
+
+#PBS -l nodes=$nodes:ppn=$ppn
+#PBS -l walltime=12:00:00
+#PBS -j oe
+#PBS -N wrf-$WRF_DOMAINS-$jobId
+#PBS -k oe
+
+cd $THISDIR
+
+export MPI_HOME=$MPI_HOME
+export PATH=\$MPI_HOME/bin:\$PATH
+export LD_LIBRARY_PATH=\$MPI_HOME/lib:\$LD_LIBRARY_PATH
+
+export NETCDF=$NETCDF
+export PATH=\$NETCDF/bin:\$PATH
+export LD_LIBRARY_PATH=\$NETCDF/lib:\$LD_LIBRARY_PATH
+
+echo "nodefile: \$PBS_NODEFILE"
+echo "-----------------------"
+cat \$PBS_NODEFILE
+cp \$PBS_NODEFILE hostfile.$WRF_DOMAINS-$jobId
+echo "-----------------------"
+
+$THISDIR/wrf.exe 2>&1 
+EOF
+
+#bsub wrf.pbs
+export OMP_NUM_THREADS=$threads
+./wrf.exe 2>&1 1>wrf.faceit.log
+cd $THISDIR
+mv wrfout_* outputs/
+mv wrfrst_* restarts/
+
+cat > $wrfOutputDsRef << __EOF__
+*** TEMPORARY ***
+__EOF__
+
+cat > $wrfRestartDsRef << __EOF__
+*** TEMPORARY ***
+__EOF__
+

@@ -1,0 +1,40 @@
+#! /usr/bin/python
+
+import json
+import shutil,os,sys, getopt
+import glob,re,getopt,subprocess
+
+def main(argv):
+  inputfile = ''
+  outputfile = ''
+  try:
+    opts, args = getopt.getopt(argv,"hi:o:n:",["ifile=","opath="])
+  except getopt.GetoptError:
+    print 'pointfeaturecollection2csv -i <inputfile> -o <outputpath>'
+    sys.exit(2)
+  for opt, arg in opts:
+    if opt == '-h':
+      print 'pointfeaturecollection2csv -i <inputfile> -o <outputpath>'
+      sys.exit()
+    elif opt in ("-i", "--ifile"):
+       inputfile = arg
+    elif opt in ("-o", "--opath"):
+       outputfile = arg
+
+  #print inputfile
+  #print outputfile
+
+  with open(inputfile) as fIn:
+    data = json.load(fIn)
+
+    with open(outputfile, "a") as fOut:
+
+      for feature in data['features']:
+        if feature['geometry']['type'] == "Point":
+          lon=feature['geometry']['coordinates'][0]
+          lat=feature['geometry']['coordinates'][1]
+          name=feature['properties']['name'].replace(" ", "_")
+          fOut.write(str(lon)+" "+str(lat)+" "+name+"\n")
+
+if __name__ == "__main__":
+   main(sys.argv[1:])

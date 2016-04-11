@@ -1,0 +1,44 @@
+#! /bin/bash
+
+# Check if the number of parameters is correct
+if [ $# -ne 3 ]
+then
+    echo "Usage: fill-template <template:filename> <properties:filename> <output:filename>"
+    echo ""
+    echo "Template example"
+    echo "Here the value of %key1% (key1) and there the value of %key% key2"
+    echo ""
+    echo ""
+    echo "Properties example"
+    echo "key1=value1"
+    echo "key2=value2"
+    exit -1
+fi
+
+temp=$1
+prop=$2
+dest=$3
+
+cp $temp $dest
+while read line ; do
+    #echo $line
+    IFS='=' read -ra ADDR <<< "$line"
+    key=""
+    value=""
+    declare -i count=0
+    for i in "${ADDR[@]}"; do
+      # process "$i"
+      if [ $count -eq 0 ];
+      then
+        key=$i
+      else
+        value=$i
+      fi
+      count=$count+1
+    done
+    echo "key=$key value=$value"
+    sed -e "s;%$key%;$value;" $dest >$dest.tmp
+    cp $dest.tmp $dest
+    rm $dest.tmp
+done < $prop
+

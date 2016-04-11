@@ -1,0 +1,694 @@
+#!/usr/bin/python
+
+from datetime import datetime, timedelta
+from optparse import OptionParser
+import os
+import sys
+from xml.etree.ElementTree import Element
+from xml.etree.ElementTree import SubElement
+import xml.etree.ElementTree as ET
+
+#-----------------------
+mydate="2015-05-22_00:00:00"
+#----------------------
+
+class WrfConfig(object):
+
+	def __init__(self, wrf_config):
+		tree=ET.parse(wrf_config)
+		self.root=tree.getroot()
+
+#	def get_subelem_texts(self,elem, subelems):
+#		attrs = {}
+#    		for sa in skillattrs:
+#        		textval = skill.findtext(sa)
+#        		if textval is None:
+#            			return None
+#        		attrs[sa] = textval.strip()
+#    		return attrs
+
+	def value (self,xmltag,part):
+        	result="\n "+xmltag+" = "
+	      	for x in self.root.findall(part):
+	     		for j in x:
+            			for k in j:
+		              		for child in k:
+                				if child.tag==xmltag:
+	                    	        		result=result+child.text+","
+		return result
+
+	def valuestr (self,xmltag,part):
+                result="\n "+xmltag+" = "
+                for x in self.root.findall(part):
+                        for j in x:
+                                for k in j:
+                                        for child in k:
+                                                if child.tag==xmltag:
+                                                        result=result+"'"+child.text+"'"+","
+                return str(result)
+
+	def singlevaluestr (self,xmltag,part):
+		result=""
+        	for x in self.root.findall(part):
+          	   for child in x.iter():
+             		if child.tag==xmltag:
+                		result=result+"\n "+xmltag+" = "+"'"+child.text+"'"
+		return str(result)
+
+	def singlevalue(self,xmltag,part):
+                result=""
+                for x in self.root.findall(part):
+                   for child in x.iter():
+                        if child.tag==xmltag:
+                                result=result+"\n "+xmltag+" = "+child.text+","
+		return result
+
+#---------- SHARE ----------
+	def get_wrf_core(self):
+		return self.singlevaluestr('wrf_core','wps')
+
+	def get_start_dates(self):
+		#start_date = "\n start_date = '%s', '%s', '%s'," \
+# % (start_time.strftime('%Y-%m-%d_%H:%M:%S'),start_time.strftime('%Y-%m-%d_%H:%M:%S'),start_time.strftime('%Y-%m-%d_%H:%M:%S'))
+		#return start_date
+		return self.valuestr('start_date','wps')
+	
+	def get_end_dates(self):
+		#end_date =  "\n end_date   = '%s', '%s','%s', " \
+               # % (end_time.strftime('%Y-%m-%d_%H:%M:%S'),end_time.strftime('%Y-%m-%d_%H:%M:%S'),end_time.strftime('%Y-%m-%d_%H:%M:%S'))
+		#return end_date
+		return self.valuestr('end_date','wps')
+
+	def get_interval_seconds(self):
+		return self.singlevalue('interval_seconds','wps')
+
+	def get_max_dom(self):
+		return self.singlevalue('max_dom','wps')
+
+	def get_io_form_geogrid(self):
+		return self.singlevalue('io_form_geogrid','wps')
+#---------- GEOGRID ----------
+
+	def get_parent_ids(self):
+		return self.value('parent_id','wps')
+
+	def get_parent_grid_ratios(self):
+		return self.value('parent_grid_start','wps')
+
+	def get_i_parent_starts(self):
+		return self.value('i_parent_start','wps')
+
+	def get_j_parent_starts(self):
+		return self.value('j_parent_start','wps')
+
+	def get_e_wes(self):
+		return self.value('e_we','wps')
+
+	def get_e_sns(self):
+		return self.value('e_sn','wps')
+
+	def get_geog_data_ress(self):
+		return self.valuestr('geog_data_res','wps')
+
+	def get_dx(self):
+		return self.singlevalue('dx','wps')
+
+	def get_dy(self):
+		return self.singlevalue('dy','wps')
+
+	def get_map_proj(self):
+		return self.singlevaluestr('map_proj','wps')
+
+	def get_ref_lat(self):
+		return self.singlevalue('ref_lat','wps')
+
+	def get_ref_lon(self):
+		return self.singlevalue('ref_lon','wps')
+
+	def get_truelat1(self):
+		return self.singlevalue('truelat1','wps')
+
+	def get_truelat2(self):
+		return self.singlevalue('truelat2','wps')
+
+	def get_stand_lon(self):
+		return self.singlevalue('stand_lon','wps')
+
+	def get_geog_data_path(self):
+		return self.singlevaluestr('geog_data_path','wps')
+
+	def get_opt_geogrid_tbl_path(self):
+		return self.singlevaluestr('OPT_GEOGRID_TBL_PATH','wps')
+
+#---------- UNGBIB ----------
+	def get_out_format(self):
+		return self.singlevaluestr('out_format','wps')
+
+	def get_prefix(self):
+		return self.singlevaluestr('prefix','wps')
+
+#---------- METGRID ----------
+	def get_fg_name(self):
+		return self.singlevaluestr('fg_name','wps')
+
+	def get_io_form_metgrid(self):
+		return self.singlevalue('io_form_metgrid','wps')
+#---------- MOD LEVELS ---------
+	def get_press_pas(self):
+		return self.value('press_pa','wps')
+
+#--------------------------------NAMELIST.INPUT-------------------------------
+#Time_control
+	def get_run_days(self):
+		return self.singlevalue('run_days','wrf')	
+	
+	def get_run_hours(self):
+		return self.singlevalue('run_hours','wrf')
+
+	def get_run_minutes(self):
+		return self.singlevalue('run_minutes','wrf')
+	
+	def get_run_seconds(self):
+		return self.singlevalue('run_seconds','wrf')
+
+	def get_start_years(self):
+		start_year =  "\n start_year = %d, %d, %d, %d," % (start_time.year,start_time.year,start_time.year, start_time.year)
+		return start_year
+
+	def get_start_months(self):
+		#start_month = "\n start_month = %02d, %02d, %02d," % (start_time.month,start_time.month, start_time.month)
+		#return start_month
+		return self.value('start_month','wrf')
+
+
+	def get_start_days(self):
+		#start_day =  "\n start_day = %02d,%02d, %02d," % (start_time.day,start_time.day, start_time.day)
+		#return start_day
+		return self.value('start_day','wrf')	
+
+	def get_start_hours(self):
+		#start_hours =  "\n start_hour = %02d,%02d, %02d," % (start_time.hour, start_time.hour, start_time.hour)
+		#return start_hours
+		return self.value('start_hour','wrf')
+
+	def get_start_minutes(self):
+		start_minutes = "\n start_minute = %02d,%02d, %02d," % (start_time.minute,start_time.minute, start_time.minute)
+		return start_minutes
+
+	def get_start_seconds(self):
+		start_second =  "\n start_second = %02d,%02d, %02d," % (start_time.second,start_time.second, start_time.second)
+		return start_second
+
+	def get_end_years(self):
+		end_year =  "\n end_year = %02d, %02d,%02d,%02d" % (end_time.year,end_time.year, end_time.year,end_time.year)
+		return end_year
+
+	def get_end_months(self):
+		#end_month = "\n end_month = %02d,%02d, %02d," % (end_time.month,end_time.month, end_time.month)
+		#return end_month
+		return self.value('end_month','wrf')
+	
+	def get_end_days(self):
+		#end_day =  "\n end_day = %02d,%02d, %02d," % (end_time.day,end_time.day, end_time.day)
+		#return end_day
+		return self.value('end_day','wrf')
+
+	def get_end_hours(self):
+		#end_hour =  "\n end_hour = %02d,%02d, %02d," % (end_time.hour,end_time.hour, end_time.hour)
+		#return end_hour
+		return self.value('end_hour','wrf')
+
+	def get_end_minutes(self):
+		end_minute =  "\n end_minute = %02d,%02d, %02d," % (end_time.minute,end_time.minute, end_time.minute)
+		return end_minute
+
+	def get_end_seconds(self):
+		end_second =  "\n end_second = %02d, %02d, %02d," % (end_time.second,end_time.second, end_time.second)
+		return end_second
+
+	def get_interval_seconds(self):
+		 return self.singlevalue('interval_seconds','wrf') 
+
+	def get_input_from_files(self):
+		 return self.value('input_from_file','wrf')
+
+	def get_history_intervals(self):
+		return self.value('history_interval','wrf')
+
+	def get_frames_per_outfiles(self):
+		return self.value('frames_per_outfile','wrf')
+
+	def get_restart(self):
+		return self.singlevalue('restart','wrf')
+
+	def get_restart_interval(self):
+		return self.singlevalue('restart_interval','wrf')
+
+	def get_io_form_history(self):
+		return self.singlevalue('io_form_history','wrf')
+
+	def get_io_form_restart(self):
+		return self.singlevalue('io_form_restart','wrf')
+	
+	def get_io_form_input(self):
+		return self.singlevalue('io_form_input','wrf')
+
+	def get_io_form_boundary(self):
+		return self.singlevalue('io_form_boundary','wrf')
+
+	def get_debug_level(self):
+		return self.singlevalue('debug_level','wrf')
+
+#----------DOMAINS----------
+
+	def get_time_step(self):
+		return self.singlevalue('time_step','wrf')
+
+	def get_time_step_fract_num(self):
+		return self.singlevalue('time_step_fract_num','wrf')
+
+	def get_time_step_fract_den(self):
+		return self.singlevalue('time_step_fract_den','wrf')
+
+	def get_max_dom(self):
+		return self.singlevalue('max_dom','wrf')
+
+	def get_parent_ids(self):
+		return self.value('parent_id','wrf')
+
+	def get_parent_grid_ratios(self):
+		return self.value('parent_grid_ratio','wrf')
+
+	def get_i_parent_starts(self):
+		return self.value('i_parent_start','wrf')
+	
+	def get_j_parent_starts(self):
+		return self.value('j_parent_start','wrf')
+
+	def get_e_wes(self):
+		return self.value('e_we','wrf')
+
+	def get_e_sns(self):
+		return self.value('e_sn','wrf')
+
+	def get_s_wes(self):
+		return self.value('s_we','wrf')
+
+	def get_s_sns(self):
+		return self.value('s_sn','wrf')
+
+	def get_s_verts(self):
+		return self.value('s_vert','wrf')
+
+	def get_e_verts(self):
+		return self.value('e_vert','wrf')
+
+	def get_max_dz(self):
+		return self.singlevalue('max_dz','wrf')
+	
+	def get_p_top_requested(self):
+		return self.singlevalue('p_top_requested','wrf')
+
+	def get_num_metgrid_levels(self):
+		return self.singlevalue('num_metgrid_levels','wrf')
+
+	def get_num_metgrid_soil_levels(self):
+		return self.singlevalue('num_metgrid_soil_levels','wrf')
+
+	def get_dxs(self):
+		return self.value('dx','wrf')
+
+	def get_dys(self):
+                return self.value('dy','wrf')
+
+	def get_grid_ids(self):
+                return self.value('grid_id','wrf')
+
+	def get_parent_time_step_ratios(self):
+                return self.value('parent_time_step_ratio','wrf')
+
+	def get_feedback(self):
+                return self.singlevalue('feedback','wrf')
+
+	def get_smooth_option(self):
+                return self.singlevalue('smooth_option','wrf')
+#----------PHYSICS----------
+	def get_mp_physicss(self):
+		return self.value('mp_physics','wrf')
+
+	def get_ra_lw_physicss(self):
+                return self.value('ra_lw_physics','wrf')
+
+	def get_ra_sw_physicss(self):
+                return self.value('ra_sw_physics','wrf')
+
+	def get_radts(self):
+                return self.value('radt','wrf')
+
+	def get_sf_sfclay_physicss(self):
+                return self.value('sf_sfclay_physics','wrf')
+
+	def get_sf_surface_physicss(self):
+                return self.value('sf_surface_physics','wrf')
+
+	def get_bl_pbl_physicss(self):
+                return self.value('bl_pbl_physics','wrf')
+
+	def get_bldts(self):
+                return self.value('bldt','wrf')
+
+	def get_cu_physicss(self):
+                return self.value('cu_physics','wrf')
+
+	def get_cudts(self):
+                return self.value('cudt','wrf')
+
+	def get_isfflx(self):
+                return self.singlevalue('isfflx','wrf')
+
+	def get_ifsnow(self):
+                return self.singlevalue('ifsnow','wrf')
+
+	def get_icloud(self):
+                return self.singlevalue('icloud','wrf')
+
+	def get_surface_input_source(self):
+                return self.singlevalue('surface_input_source','wrf')
+
+	def get_num_soil_layers(self):
+                return self.singlevalue('num_soil_layers','wrf')
+	
+	def get_maxiens(self):
+                return self.singlevalue('maxiens','wrf')
+
+	def get_maxens(self):
+                return self.singlevalue('maxens','wrf')
+
+	def get_maxens2(self):
+                return self.singlevalue('maxens2','wrf')
+
+	def get_maxens3(self):
+                return self.singlevalue('maxens3','wrf')
+
+	def get_ensdim(self):
+                return self.singlevalue('ensdim','wrf')
+
+#----------FDDA---------
+
+#----------DYMANICS----------
+
+	def get_dyn_opt(self):
+                return self.singlevalue('dyn_opt','wrf')
+
+	def get_rk_ord(self):
+                return self.singlevalue('rk_ord','wrf')
+
+	def get_w_damping(self):
+                return self.singlevalue('w_damping','wrf')
+
+	def get_diff_opt(self):
+                return self.singlevalue('diff_opt','wrf')
+
+	def get_km_opt(self):
+                return self.singlevalue('km_opt','wrf')
+
+	def get_damp_opt(self):
+                return self.singlevalue('damp_opt','wrf')
+
+	def get_base_temp(self):
+                return self.singlevalue('base_temp','wrf')
+
+	def get_zdamps(self):
+                return self.value('zdamp','wrf')
+
+	def get_dampcoefs(self):
+                return self.value('dampcoef','wrf')
+
+	def get_khdifs(self):
+                return self.value('khdif','wrf')
+
+	def get_kvdifs(self):
+                return self.value('kvdif','wrf')
+
+	def get_smdivs(self):
+                return self.value('smdiv','wrf')
+
+	def get_emdivs(self):
+                return self.value('emdiv','wrf')
+
+	def get_epssms(self):
+                return self.value('epssm','wrf')
+
+	def get_non_hydrostatics(self):
+                return self.value('non_hydrostatic','wrf')
+
+	def get_time_step_sounds(self):
+                return self.value('time_step_sound','wrf')
+
+	def get_h_mom_adv_orders(self):
+                return self.value('h_mom_adv_order','wrf')
+
+	def get_v_mom_adv_orders(self):
+                return self.value('v_mom_adv_order','wrf')
+
+	def get_h_sca_adv_orders(self):
+                return self.value('h_sca_adv_order','wrf')
+
+	def get_v_sca_adv_orders(self):
+                return self.value('v_sca_adv_order','wrf')
+
+#----------BDY CONTROL----------
+
+	def get_spec_bdy_width(self):
+                return self.singlevalue('spec_bdy_width','wrf')
+
+	def get_spec_zone(self):
+                return self.singlevalue('spec_zone','wrf')
+
+	def get_relax_zone(self):
+                return self.singlevalue('relax_zone','wrf')
+	
+	def get_specifieds(self):
+                return self.value('specified','wrf')
+	
+	def get_periodic_xs(self):
+                return self.value('periodic_x','wrf')
+
+	def get_symmetric_xss(self):
+                return self.value('symmetric_xs','wrf')
+
+	def get_symmetric_xes(self):
+                return self.value('symmetric_xe','wrf')
+
+	def get_open_xss(self):
+                return self.value('open_xs','wrf')
+
+	def get_open_xes(self):
+                return self.value('open_xe','wrf')
+	
+	def get_periodic_ys(self):
+                return self.value('periodic_y','wrf')
+
+	def get_symmetric_yss(self):
+                return self.value('symmetric_ys','wrf')
+
+	def get_symmetric_yes(self):
+                return self.value('symmetric_ye','wrf')
+	
+	def get_open_yss(self):
+                return self.value('open_ys','wrf')
+	
+	def get_open_yes(self):
+                return self.value('open_ye','wrf')
+	
+	def get_nesteds(self):
+                return self.value('nested','wrf')
+
+#---------- GRIB2 ----------
+
+#----------NAMELIST QUILT----------
+
+	def get_nio_tasks_per_group(self):
+                return self.singlevalue('nio_tasks_per_group','wrf')
+
+	def get_nio_groups(self):
+                return self.singlevalue('nio_groups','wrf')
+
+#--------------------------------NAMELIST.ARWpost---------------------------
+#Datetime
+
+	def get_start_date(self):
+		return self.singlevaluestr('start_date','arw')
+
+	def get_end_date(self):
+		return self.singlevaluestr('end_date','arw')
+
+	def get_interval_seconds(self):
+		return self.singlevalue('interval_seconds','arw')
+
+	def get_tacc(self):
+		return self.singlevalue('tacc','arw')
+
+	def get_debug_level(self):
+		return self.singlevalue('debug_level','arw')
+
+#IO
+
+	def get_input_root_name(self):
+		return self.singlevaluestr('input_root_name','arw')
+
+	def get_output_root_name(self):
+		return self.singlevaluestr('output_root_name','arw')
+	
+	def get_plot(self):
+		return (self.singlevaluestr('plot','arw')[0:19])
+
+	def get_plot1(self):
+		return (self.singlevaluestr('plot','arw')[20:])
+
+#	def get_plot(self):
+#		return self.get_subelem('io','plot')
+
+	def get_fieldss(self):
+		result="\n "+'fields'+" = "+"'"
+                for x in self.root.findall('arw'):
+                        for j in x:
+                                for k in j:
+                                        for child in k:
+                                                if child.tag==('fields'):
+                                                        result=result+child.text+","
+                result=result+"'"
+                return str(result)
+		
+
+
+	def get_mercator_defs(self):
+		result=""
+                for x in self.root.findall('arw'):
+                   for child in x.iter():
+                        if child.tag==('mercator_defs'):
+                                result=result+"\n "+'mercator_defs'+" = "+child.text
+                return str(result)
+
+
+	def get_split_output(self):
+		result=""
+                for x in self.root.findall('arw'):
+                   for child in x.iter():
+                        if child.tag==('split_output'):
+                                result=result+"\n "+'split_output'+" = "+child.text
+                return str(result)
+
+
+	def get_frames_per_outfile(self):
+		return self.singlevalue('frames_per_outfile','arw')
+
+
+#INTERP
+
+	def get_interp_method(self):
+		return self.singlevalue('interp_method','arw')
+
+	def get_interp_method1(self):
+                result=""
+                for x in self.root.findall('arw'):
+                   for child in x.iter():
+                        if child.tag==('interp_method1'):
+                                result=result+"\n "+'interp_method'+" = "+child.text
+                return str(result)
+
+	def get_interp_levelss(self):
+		return self.value('interp_levels','arw')
+
+	def get_extrapolate(self):
+		result=""
+                for x in self.root.findall('arw'):
+                   for child in x.iter():
+                        if child.tag==('extrapolate'):
+                                result=result+"\n "+'extrapolate'+" = "+child.text
+                return str(result)
+
+	
+	def get_interp_levelss1(self):
+                result="\n "+'interp_levels'+" = "
+                for x in self.root.findall('arw'):
+                        for j in x:
+                                for child in j:
+                                        if child.tag==('interp_levels1'):
+                                                result=result+child.text+","
+                return result
+
+
+#-------------------------------------------------------	
+
+
+
+
+#--------------------FUNCTION FOR TIME --------------------
+
+	def set_start_time(self, start_time):
+		pass
+
+	def set_end_time(self, end_time):
+                pass
+
+	def get_wps_namelist_as_text(self):
+		result="&share"+self.get_wrf_core()+self.get_start_dates()+self.get_end_dates()+self.get_interval_seconds()+self.get_max_dom()+self.get_io_form_geogrid()+"\n/"+"\n&geogrid"+self.get_parent_ids()+self.get_parent_grid_ratios()+self.get_i_parent_starts()+self.get_j_parent_starts()+self.get_e_wes()+self.get_e_sns()+self.get_geog_data_ress()+self.get_dx()+self.get_dy()+self.get_map_proj()+self.get_ref_lat()+self.get_ref_lon()+self.get_truelat1()+self.get_truelat2()+self.get_stand_lon()+self.get_geog_data_path()+self.get_opt_geogrid_tbl_path()+"\n/\n&ungrib"+self.get_out_format()+self.get_prefix()+"\n/\n&metgrid"+self.get_fg_name()+self.get_io_form_metgrid()+"\n/\n&mod_levs"+self.get_press_pas()
+
+		return result
+
+	def get_wrf_namelist_as_text(self):
+		result="&time_control"+self.get_run_days()+self.get_run_hours()+self.get_run_minutes()+self.get_run_seconds()+self.get_start_years()+self.get_start_months()+self.get_start_days()+self.get_start_hours()+self.get_start_minutes()+self.get_start_seconds()+self.get_end_years()+self.get_end_months()+self.get_end_days()+self.get_end_hours()+self.get_end_minutes()+self.get_end_seconds()+self.get_interval_seconds()+self.get_input_from_files()+self.get_history_intervals()+self.get_frames_per_outfiles()+self.get_restart()+self.get_restart_interval()+self.get_io_form_history()+self.get_io_form_restart()+self.get_io_form_input()+self.get_io_form_boundary()+self.get_debug_level()+"\n/\n&domains"+self.get_time_step()+self.get_time_step_fract_num()+self.get_time_step_fract_den()+self.get_max_dom()+self.get_parent_ids()+self.get_parent_grid_ratios()+self.get_i_parent_starts()+self.get_j_parent_starts()+self.get_e_wes()+self.get_e_sns()+self.get_s_wes()+self.get_s_sns()+self.get_s_verts()+self.get_e_verts()+self.get_max_dz()+self.get_p_top_requested()+self.get_num_metgrid_levels()+self.get_num_metgrid_soil_levels()+self.get_dxs()+self.get_dys()+self.get_grid_ids()+self.get_parent_time_step_ratios()+self.get_feedback()+self.get_smooth_option()+"\n/\n&physics"+self.get_mp_physicss()+self.get_ra_lw_physicss()+self.get_ra_sw_physicss()+self.get_radts()+self.get_sf_sfclay_physicss()+self.get_sf_surface_physicss()+self.get_bl_pbl_physicss()+self.get_bldts()+self.get_cu_physicss()+self.get_cudts()+self.get_isfflx()+self.get_ifsnow()+self.get_icloud()+self.get_surface_input_source()+self.get_num_soil_layers()+self.get_maxiens()+self.get_maxens()+self.get_maxens2()+self.get_maxens3()+self.get_ensdim()+"\n/\n&fdda"+"\n/\n&dynamics"+self.get_dyn_opt()+self.get_rk_ord()+self.get_w_damping()+self.get_diff_opt()+self.get_km_opt()+self.get_damp_opt()+self.get_base_temp()+self.get_zdamps()+self.get_dampcoefs()+self.get_khdifs()+self.get_kvdifs()+self.get_smdivs()+self.get_emdivs()+self.get_epssms()+self.get_non_hydrostatics()+self.get_time_step_sounds()+self.get_h_mom_adv_orders()+self.get_v_mom_adv_orders()+self.get_h_sca_adv_orders()+self.get_v_sca_adv_orders()+"\n/\n&bdy_control"+self.get_spec_bdy_width()+self.get_spec_zone()+self.get_relax_zone()+self.get_specifieds()+self.get_periodic_xs()+self.get_symmetric_xss()+self.get_symmetric_xes()+self.get_open_xss()+self.get_open_xes()+self.get_periodic_ys()+self.get_symmetric_yss()+self.get_symmetric_yes()+self.get_open_yss()+self.get_open_yes()+self.get_nesteds()+"\n/\n&grib2\n/\n&namelist_quilt"+self.get_nio_tasks_per_group()+self.get_nio_groups()+"\n/\n"
+		return result
+
+	def get_arw_namelist_as_text(self):
+                result="&datetime"+self.get_start_date()+self.get_end_date()+self.get_interval_seconds()+self.get_tacc()+self.get_debug_level()+"\n/\n&io"+self.get_input_root_name()+self.get_output_root_name()+self.get_plot()+self.get_fieldss()+self.get_mercator_defs()+"\n/"+self.get_split_output()+self.get_frames_per_outfile()+"\n\n"+self.get_plot1()+"\n/&interp"+self.get_interp_method()+self.get_interp_levelss()+"/\n"+self.get_extrapolate()+self.get_interp_method()+"\n"+self.get_interp_levelss()+"\n"+self.get_interp_levelss1()
+
+                return result
+
+
+if __name__ == "__main__":
+	# This is where we get the variables we need from the command line
+	parser = OptionParser()
+	parser.add_option('-f','--file',dest='filename',default=None)
+
+	parser.add_option('-i','--inittime',dest='init_hour',help='Specify start hour (today is assumed)',default=None)
+
+	parser.add_option('-d','--startdate',dest='start_date',help='Specify start date (YYMMDDHH)',default=datetime.utcnow().strftime('%Y%m%d')+'00')
+
+	parser.add_option('-l','--runlength',dest='run_length',help='Run length in hours',default='48')
+	# Actaully parse the command line options here
+	(opts,args) = parser.parse_args()
+	# Set variables from the command line options
+    	start_time = datetime.strptime(opts.start_date, '%Y%m%d%H')
+	if opts.init_hour != None:
+    		start_time = start_time.replace(hour=int(opts.init_hour))
+    	runlength = timedelta(hours = int(opts.run_length))
+	# Compute the end time from starttime and runlength
+	end_time = start_time + runlength
+
+	options,reminder=parser.parse_args()
+
+	#wrf_config = WrfConfig("wrf_model.xml")
+	wrf_config = WrfConfig(options.filename)
+	
+	wrf_config.set_start_time(start_time)
+	wrf_config.set_end_time(end_time)
+
+
+	namelist_wps=wrf_config.get_wps_namelist_as_text()
+	f_namelist_wps=open('namelist.wps','w')
+	f_namelist_wps.write(namelist_wps)
+	f_namelist_wps.close()
+
+	namelist_wrf=wrf_config.get_wrf_namelist_as_text()
+	f_namelist_wrf=open('namelist.input','w')
+        f_namelist_wrf.write(namelist_wrf)
+        f_namelist_wrf.close()
+
+	namelist_arw=wrf_config.get_arw_namelist_as_text()
+        f_namelist_arw=open('namelist.ARWpost','w')
+        f_namelist_arw.write(namelist_arw)
+        f_namelist_arw.close()
+
+

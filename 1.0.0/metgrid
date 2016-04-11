@@ -1,0 +1,88 @@
+#!/bin/bash
+
+# Check if the number of parameters is correct
+if [ $# -ne 4 ]
+then
+    echo "Usage: metgrid <wrfmodel:filename> <geogridDsRef:filename> <fileDsRef:filename> <metgridDsRef:filename>"
+    exit -1
+fi
+
+
+wrf_model=$1
+geogridOutputDsRef=$2
+fileDsRef=$3
+metgridOutputDsRef=$4
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/metgrid"
+cd $THISDIR
+mkdir outputs
+mkdir inputs
+xml2namelist -f $wrf_model
+
+#Extract geogrid file from geogridDsRef and create the geo_em files
+#cp $geogridOutputDsRef .
+#geoemDsRef2netcdf -i $geogridOutputDsRef -o $THISDIR
+dsref2files -i $geogridOutputDsRef -o $THISDIR -n "http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wps/geogrid_output"
+
+#Extract ungrib file from fileDsRef
+#cp $fileDsRef .
+#fileDsRef2file -i $fileDsRef -o $THISDIR
+dsref2files -i $fileDsRef -o $THISDIR -n "http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wps/ungrib_output"
+
+####################################################
+if [ "$WRF_ROOT" == "" ]
+then
+  echo "WRF_ROOT not defined!"
+  exit 1
+fi
+
+#queue="batch"
+threads=8
+nodes=1
+ppn=1
+
+ln -sf $WRF_ROOT/WPS/metgrid.exe
+# Link the metgrid table file
+ln -sf $WRF_ROOT/WPS/metgrid/METGRID.TBL
+ln -sf $WRF_ROOT/WPS/metgrid
+
+#
+cat > metgrid.pbs << EOF
+#!/bin/bash
+
+#PBS -l nodes=$nodes:ppn=$ppn
+#PBS -l walltime=2:00:00
+#PBS -j oe
+#PBS -N metgrid-$jobId
+#PBS -k oe
+
+cd $THISDIR
+
+export MPI_HOME=$MPI_HOME
+export PATH=\$MPI_HOME/bin:\$PATH
+export LD_LIBRARY_PATH=\$MPI_HOME/lib:\$LD_LIBRARY_PATH
+
+export NETCDF=$NETCDF
+export PATH=\$NETCDF/bin:\$PATH
+export LD_LIBRARY_PATH=\$NETCDF/lib:\$LD_LIBRARY_PATH
+
+echo "nodefile: \$PBS_NODEFILE"
+echo "-----------------------"
+cat \$PBS_NODEFILE
+echo "-----------------------"
+
+$THISDIR/metgrid.exe 2>&1 
+EOF
+
+#bsub metgrid.pbs
+#cd $THISDIR/outputs
+export OMP_NUM_THREADS=$threads
+./metgrid.exe 2>&1 
+cd $THISDIR
+mv met_em* outputs/
+
+cat > $metgridOutputDsRef << __EOF__
+*** TEMPORARY ***
+__EOF__
+

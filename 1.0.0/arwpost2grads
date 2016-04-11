@@ -1,0 +1,120 @@
+#!/bin/bash 
+
+
+wrf_model=$1
+wrfOutput=$2
+output=$3
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/arwpost2grads"
+cd $THISDIR
+mkdir inputs
+mkdir outputs
+xml2namelist -f $wrf_model
+start_date=`cat namelist.ARWpost|grep start_date|awk '{print $3 }'`
+end_date=`cat namelist.ARWpost|grep end_date|awk '{print $3 }'`
+cat > namelist.ARWpost << EOF
+&datetime
+ start_date = $start_date
+ end_date   = $end_date
+ interval_seconds = 3600,
+ tacc = 0,
+ debug_level = 1,
+/
+
+&io
+ input_root_name = './wrfout.nc'
+ output_root_name = './wrfout_grads'
+ plot = 'list'
+ fields = 'rh2,TH2,Q2,T2,RAINNC,RAINC,GRAUPELNC,SR,height,theta,tc,tk,td,rh,umet,vmet,pressure,dbz,max_dbz,u10m,v10m,wdir,wspd,wd10,ws10,slp,mcape,mcin,lcl,lfc,cape,cin,clfr,geopt'
+ fields_file = 'myLIST'
+ output_type = 'grads'
+ mercator_defs = .true.
+/
+ output_type = 'grads'
+ output_type = 'v5d'
+ fields = 'RAINNC,RAINC,height,theta,tc,tk,td,rh,umet,vmet,pressure,dbz,max_dbz,u10m,v10m,wdir,wspd,wd10,ws10,slp,mcape,mcin,lcl,lfc,cape,cin,clfr,geopt'
+ fields = 'height,theta,tc,tk,td,rh,umet,vmet,pressure,dbz,max_dbz,u10m,v10m,wdir,wspd,wd10,ws10,slp,mcape,mcin,lcl,lfc,cape,cin,clfr'
+ plot = 'all'
+ plot = 'basic'       ! see gridinfo_module.F90 for a list
+ plot = 'file'        ! give a filename in "field_file"
+ plot = 'list'        ! give a list of fields in "fields", seperated with commas
+ plot = 'basic_file'
+ plot = 'basic_list'
+ plot = 'list_file'
+ plot = 'all_file'
+ plot = 'all_list'
+ plot = 'basic_list_file'
+ plot = 'all_list_file'
+
+
+&interp
+ interp_method = 1,
+ interp_levels = 1000.,950.,900.,850.,800.,750.,700.,650.,600.,550.,500.,450.,400.,350.,300.,250.,200.,150.,100.,
+/
+ interp_method = 0,     ! 0 is model levels, -1 is nice height levels, 1 is user specified pressure/height
+ interp_levels = 1000.,950.,900.,850.,800.,750.,700.,650.,600.,550.,500.,450.,400.,350.,300.,250.,200.,150.,100.,
+ interp_levels = 0.25, 0.50, 0.75, 1.00, 2.00, 3.00, 4.00, 5.00, 6.00, 7.00, 8.00, 9.00, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0, 17.0, 18.0, 19.0, 20.0,
+ interp_levels = 0.994, 1.00, 1.02, 1.03, 1.058, 1.099, 1.141, 1.183, 1.208, 1.233, 1.258, 1.283, 1.308, 1.333, 1.383, 1.433, 1.483, 1.533, 1.583, 1.633, 1.683, 1.733, 1.783, 1.833, 1.883, 1.933, 1.983, 2.0, 2.5, 3.00, 3.5, 4.00, 4.5, 5.0, 7.5, 10.0, 12.5, 15.0, 20.0,
+EOF
+cp $wrfOutput wrfout.nc
+
+if [ "$WRF_ROOT" == "" ]
+then
+  echo "WRF_ROOT not defined!"
+  exit 1
+fi
+
+#queue="double"
+threads=8
+nodes=1
+ppn=1
+
+# Soft link to executable and data
+ln -sf $WRF_ROOT/$WRF/ARWpost/src/ARWpost.exe
+ln -sf $WRF_ROOT/$WRF/ARWpost/fields.plt
+ln -sf $WRF_ROOT/$WRF/ARWpost/util/gribinfo.txt
+ln -sf $WRF_ROOT/$WRF/ARWpost/gribmap.txt
+ln -sf $WRF_ROOT/$WRF/ARWpost/myLIST
+mkdir src
+ln -sf $WRF_ROOT/$WRF/ARWpost/src/psadilookup.dat src/psadilookup.dat
+
+
+cat > arwpost.pbs << EOF
+#!/bin/bash
+
+#PBS -l nodes=$nodes:ppn=$ppn
+#PBS -l walltime=12:00:00
+#PBS -j oe
+#PBS -N wrf-$WRF_DOMAINS-$jobId
+#PBS -k oe
+
+cd $THISDIR
+
+export MPI_HOME=$MPI_HOME
+export PATH=\$MPI_HOME/bin:\$PATH
+export LD_LIBRARY_PATH=\$MPI_HOME/lib:\$LD_LIBRARY_PATH
+
+export NETCDF=$NETCDF
+export PATH=\$NETCDF/bin:\$PATH
+export LD_LIBRARY_PATH=\$NETCDF/lib:\$LD_LIBRARY_PATH
+
+echo "nodefile: \$PBS_NODEFILE"
+echo "-----------------------"
+cat \$PBS_NODEFILE
+cp \$PBS_NODEFILE hostfile.$WRF_DOMAINS-$jobId
+echo "-----------------------"
+
+$THISDIR/ARWpost.exe 2>&1
+EOF
+
+./ARWpost.exe 2>&1 1>ARWpost.faceit.log
+
+
+###################################################
+
+cd $THISDIR
+echo "************ $wrfArwDsRef ********************"
+mv wrfout_grads* outputs/
+zip -r temp.zip outputs
+cp temp.zip $output

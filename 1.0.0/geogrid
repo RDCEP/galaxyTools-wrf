@@ -1,0 +1,95 @@
+#!/bin/bash
+
+# Check if the number of parameters is correct
+if [ $# -ne 2 ]
+then
+    echo "Usage: geogrid <wrfmodel:filename> <geogridDsRef:filename>"
+    exit -1
+fi
+
+wrf_model=$1
+geogridOutputDsRef=$2
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/geogrid"
+cd $THISDIR
+
+mkdir outputs
+
+xml2namelist -f $wrf_model
+
+if [ "$WRF_ROOT" == "" ]
+then
+  echo "WRF_ROOT not defined!"
+  exit 1
+fi
+
+#queue="double"
+threads=8
+nodes=1
+ppn=1
+
+# Soft link to executable and data
+ln -sf $WRF_ROOT/WPS/geogrid.exe
+#ln -sf $WRF_ROOT/data/geog
+ln -sf /scratch/wrf/geog
+ln -sf $WRF_ROOT/WPS/geogrid
+ln -sf $WRF_ROOT/WRFV3/run
+ln -sf $WRF_ROOT/WRFV3/test/em_real/grib2map.tbl
+ln -sf $WRF_ROOT/WRFV3/test/em_real/gribmap.txt
+ln -sf $WRF_ROOT/WRFV3/test/em_real
+ln -sf $WRF_ROOT/WRFV3/test/em_real/CAM_ABS_DATA
+ln -sf $WRF_ROOT/WRFV3/test/em_real/CAM_AEROPT_DATA
+ln -sf $WRF_ROOT/WRFV3/test/em_real/ETAMPNEW_DATA
+ln -sf $WRF_ROOT/WRFV3/run/ETAMPNEW_DATA_DBL
+ln -sf $WRF_ROOT/WRFV3/test/em_real/LANDUSE.TBL
+ln -sf $WRF_ROOT/WRFV3/test/em_real/RRTM_DATA
+ln -sf $WRF_ROOT/WRFV3/run/RRTM_DATA_DBL
+ln -sf $WRF_ROOT/WRFV3/test/em_real/SOILPARM.TBL
+ln -sf $WRF_ROOT/WRFV3/test/em_real/URBPARM.TBL
+ln -sf $WRF_ROOT/WRFV3/test/em_real/VEGPARM.TBL
+
+
+
+#THISDIR=`pwd`
+#mkdir outputs
+#
+export OMP_NUM_THREADS=$threads
+cat > geogrid.pbs << EOF
+#!/bin/bash
+
+#PBS -l nodes=$nodes:ppn=$ppn
+#PBS -l walltime=2:00:00
+#PBS -j oe
+#PBS -N geogrid-$jobId
+#PBS -k oe
+
+cd $THISDIR
+
+export MPI_HOME=$MPI_HOME
+export PATH=\$MPI_HOME/bin:\$PATH
+export LD_LIBRARY_PATH=\$MPI_HOME/lib:\$LD_LIBRARY_PATH
+
+export NETCDF=$NETCDF
+export PATH=\$NETCDF/bin:\$PATH
+export LD_LIBRARY_PATH=\$NETCDF/lib:\$LD_LIBRARY_PATH
+
+echo "nodefile: \$PBS_NODEFILE"
+echo "-----------------------"
+cat \$PBS_NODEFILE
+echo "-----------------------"
+
+$THISDIR/geogrid.exe 2>&1 
+EOF
+
+#bsub $queue geogrid.pbs
+#bsub geogrid.pbs
+./geogrid.exe 2>&1 
+
+cd $THISDIR
+mv geo_em*.nc outputs/
+
+
+cat > $geogridOutputDsRef << __EOF__
+*** TEMPORARY ***
+__EOF__
