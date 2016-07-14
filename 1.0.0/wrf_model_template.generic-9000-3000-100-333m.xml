@@ -288,7 +288,7 @@
       </e_verts>
 	<max_dz name="Max dz" desc="Maximal interval (m) between vertical levels">2000</max_dz>
 	<p_top_requested name="P-top requested" desc="Pressure top used in the model">1000</p_top_requested>
-	<num_metgrid_levels name="Number metgrid level" desc="Number of incoming data levels (can be found by using the ncdump command on the met_em.* file)">27</num_metgrid_levels>
+	<num_metgrid_levels name="Number metgrid level" desc="Number of incoming data levels (can be found by using the ncdump command on the met_em.* file)">32</num_metgrid_levels>
 	<num_metgrid_soil_levels name="Number of metgrid soil level" desc="number of incoming soil data levels">4</num_metgrid_soil_levels>
       <dxs name="DX" desc="A real value specifying the grid distance in the x-direction where the map scale factor is 1">
 	<dx domain="d01">9000</dx>
