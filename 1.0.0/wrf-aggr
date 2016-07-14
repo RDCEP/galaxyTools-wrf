@@ -2,7 +2,8 @@
 
 wrf_model=$1
 wrfOutputDsRef=$2
-wrfTimeLatLon=$3
+domain=$3
+wrfTimeLatLon=$4
 
 THISDIR=`pwd`
 #THISDIR="/scratch/wrf/scratch/wrf-aggr"
@@ -12,12 +13,14 @@ mkdir outputs
 
 dsref2files -i $wrfOutputDsRef -o $THISDIR/inputs -n "http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wrf/wrf_output"
 
-lat=`xmllint --xpath '//wps/geogrid/ref_lat/text()' $wrf_model`
-lon=`xmllint --xpath '//wps/geogrid/ref_lon/text()' $wrf_model`
-dy=`xmllint --xpath '//wps/geogrid/dy/text()' $wrf_model`
-dx=`xmllint --xpath '//wps/geogrid/dx/text()' $wrf_model`
-sn=`xmllint --xpath '//wps/geogrid/e_sns/e_sn/text()' $wrf_model`
-ws=`xmllint --xpath '//wps/geogrid/e_wes/e_we/text()' $wrf_model`
+lat=`xmllint --xpath "//wps/geogrid/ref_lat/text()" $wrf_model`
+lon=`xmllint --xpath "//wps/geogrid/ref_lon/text()" $wrf_model`
+dy=`xmllint --xpath "//wrf/domains/dxs/dx[@domain='$domain']/text()" $wrf_model`
+dx=`xmllint --xpath "//wrf/domains/dxs/dx[@domain='$domain']/text()" $wrf_model`
+sn=`xmllint --xpath "//wps/geogrid/e_sns/e_sn[@domain='$domain']/text()" $wrf_model`
+ws=`xmllint --xpath "//wps/geogrid/e_wes/e_we[@domain='$domain']/text()" $wrf_model`
+sn=`xmllint --xpath "//wps/geogrid/e_sns/e_sn[@domain='$domain']/text()" $wrf_model`
+ws=`xmllint --xpath "//wps/geogrid/e_wes/e_we[@domain='$domain']/text()" $wrf_model`
 
 xsize=$ws
 ysize=$sn
@@ -126,7 +129,7 @@ fi
 
 declare -i count
 count=0
-files=`ls $THISDIR/inputs/*`
+files=`ls $THISDIR/inputs/wrfout_${domain}_*`
 for file in $files
 do
   count30=$count
