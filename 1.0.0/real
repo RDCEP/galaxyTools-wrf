@@ -22,7 +22,6 @@ xml2namelist -f $wrf_model
 
 cp $metemDsRef .
 #Extract metgrid
-#metemDsRef2netcdf -i $metemDsRef -o $THISDIR
 dsref2files -i $metemDsRef -o $THISDIR -n "http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wps/metgrid_output"
 
 
