@@ -3,6 +3,19 @@
 from lxml import etree
 import shutil,os,sys, getopt
 import glob,re,getopt,subprocess
+import time
+
+import hashlib
+def hashfile(fname, hasher, blocksize=65536):
+  try:
+    afile=open(fname,'rb')
+    buf = afile.read(blocksize)
+    while len(buf) > 0:
+      hasher.update(buf)
+      buf = afile.read(blocksize)
+    return hasher.hexdigest()
+  except:
+    return None
 
 def main(argv):
   inputfile = ''
@@ -28,15 +41,39 @@ def main(argv):
   #print outputpath
   #namespace='http://ci.uchicago.edu/galaxy-es/datasetrefs/wrf/wps/geogrid_output'
 
-  doc = etree.parse(inputfile)
-                      
+  doc=None
+  count=0
+  while (True):
+    try:
+      doc = etree.parse(inputfile)
+      break
+    except:
+      time.sleep(5)
+      if (count>=10):
+        print "Inconsistent dsref file"
+        sys.exit(os.EX_SOFTWARE)
+                
   refs = doc.findall('{'+namespace+'}dataSetRef')
   if refs is not None:
+
     for ref in refs:
       src=ref.get('file_name')
       name=ref.get('name')
+      check=ref.get('check')
       dst=outputpath+os.sep+name[name.find("(")+1:name.find(")")]
-      shutil.copyfile(src,dst)
+      count=0
+      while (True):
+        checkMe=hashfile(src,hashlib.sha256())
+        #print str(count)+": checking " + str(check) + " with " + checkMe
+        if (checkMe==check):
+          #print str(count)+": copy "+str(src)+" to "+str(dst)
+          shutil.copyfile(src,dst)
+          break
+        time.sleep(5)
+        count=count+1
+        if (count>=10):
+          print "Inconsistent grouped files"
+          sys.exit(os.EX_SOFTWARE)
 
 if __name__ == "__main__":
    main(sys.argv[1:])
