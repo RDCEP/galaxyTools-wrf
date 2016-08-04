@@ -1,0 +1,50 @@
+#!/bin/bash
+
+wrfTimeLatLonOutput=$1
+places=$2
+csvDsRef=$3
+
+THISDIR=`pwd`
+#THISDIR="/scratch/wrf/scratch/wrf-csv"
+cd $THISDIR
+
+SOURCE="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
+  DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
+done
+DIR="$( cd -P "$( dirname "$SOURCE" )" && pwd )"
+
+# Save a copy of a command line for fast debug
+cat > `basename $0` << EOF
+source $DIR/env.sh
+$0 $@
+EOF
+
+mkdir inputs
+mkdir outputs
+
+pointfeaturecollection2csv -i $places -o places.csv
+
+title=`ncdump -h $wrfTimeLatLonOutput | grep "TITLE" | grep -o '".*"' | sed 's/"//g'`
+startDate=`ncdump -h $wrfTimeLatLonOutput | grep "START_DATE" | grep -o '".*"' | sed 's/"//g'`
+maxTimes=`ncdump -h $wrfTimeLatLonOutput | grep "XTIME = UNLIMITED"|awk '{ print $6 }'|cut -c2-`
+
+we=`ncdump -h $wrfTimeLatLonOutput | grep "WEST-EAST_GRID_DIMENSION" | awk '{ print $3 }'`
+sn=`ncdump -h $wrfTimeLatLonOutput | grep "SOUTH-NORTH_GRID_DIMENSION" | awk '{ print $3 }'`
+bt=`ncdump -h $wrfTimeLatLonOutput | grep "BOTTOM-TOP_GRID_DIMENSION" | awk '{ print $3 }'`
+
+dx=`ncdump -h $wrfTimeLatLonOutput | grep "DX" | awk '{ print $3 }'`
+dy=`ncdump -h $wrfTimeLatLonOutput | grep "DY" | awk '{ print $3 }'`
+
+
+echo "Processing: $title"
+echo "$startDate ($maxTimes time steps)"
+grads -lbc "run $PACKAGE_BASE/wrf-csv.gs $wrfTimeLatLonOutput places.csv $THISDIR/outputs/data" 2>&1
+
+cat > $csvDsRef << __EOF__
+*** TEMPORARY ***
+__EOF__
+
+echo "Done!"
