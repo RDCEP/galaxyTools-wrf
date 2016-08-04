@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # Check if the number of parameters is correct
-if [ $# -ne 10 ]
+if [ $# -ne 11 ]
 then
-    echo "Usage: makewrfexp <center_lon:-87> <center_lon:43> <year:2015> <month:10> <day:21> <hour:00> <hours:24> <interval:21600> <domains:1> <wrfmodel:filename>"
+    echo "Usage: makewrfexp <center_lon:-87> <center_lon:43> <year:2015> <month:10> <day:21> <hour:00> <hours:24> <interval:21600> <domains:1> <wrfmodel:filename> <featurecollection:geojson>"
     exit -1
 fi
 
@@ -17,6 +17,7 @@ HOURS=$7
 INTERVAL_SECONDS=$8
 MAX_DOM=$9
 output=${10}
+featurecollection=${11}
 
 # Ending simulation date
 FDATE=`date --date "$IYEAR-$IMONTH-$IDAY +$HOURS hour $IHOUR:00" +%Y%m%dZ%H`
@@ -42,3 +43,22 @@ EOF
 
 # This is a temporary shortcut
 fill-template $PACKAGE_BASE/wrf_model_template.generic-9000-3000-100-333m.xml wrf.properties $output
+
+cat > $featurecollection << EOF
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name":"point"},
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          $CLON,
+          $CLAT
+        ]
+      }
+    }
+  ]
+}
+EOF
